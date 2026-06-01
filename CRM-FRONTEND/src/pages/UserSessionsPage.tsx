@@ -88,7 +88,12 @@ export function UserSessionsPage() {
     sortOrder: sortOption.sortOrder,
   };
 
-  const { data, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError: sessionsError,
+    refetch: refetchSessions,
+  } = useQuery({
     queryKey: ['user-sessions', baseQuery, page, pageSize],
     queryFn: () => usersService.getUserSessions({ ...baseQuery, page, limit: pageSize }),
     enabled: canManageRbac,
@@ -137,6 +142,24 @@ export function UserSessionsPage() {
           <p className="text-muted-foreground">Refresh-token sessions across all devices</p>
         </div>
       </div>
+
+      {sessionsError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load user sessions. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchSessions()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>

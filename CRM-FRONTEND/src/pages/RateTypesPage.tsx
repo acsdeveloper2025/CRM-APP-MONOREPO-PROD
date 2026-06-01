@@ -142,7 +142,12 @@ export function RateTypesPage() {
     [debouncedSearchValue, status, dateFrom, dateTo, sortConfig, page, pageSize]
   );
 
-  const { data: listResp, isLoading } = useQuery({
+  const {
+    data: listResp,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['rate-types', queryArgs],
     queryFn: () => rateTypesService.getRateTypes(queryArgs),
   });
@@ -293,6 +298,24 @@ export function RateTypesPage() {
           </p>
         </div>
       </div>
+
+      {isError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load rate types. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 5-card stats grid */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">

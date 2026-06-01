@@ -505,7 +505,12 @@ export const CaseDataTemplatesPage: React.FC = () => {
     [currentPage, updateParam]
   );
 
-  const { data: templatesRes, isLoading: templatesLoading } = useQuery({
+  const {
+    data: templatesRes,
+    isLoading: templatesLoading,
+    isError: templatesError,
+    refetch: refetchTemplates,
+  } = useQuery({
     queryKey: [
       'case-data-templates',
       debouncedSearchValue,
@@ -768,6 +773,24 @@ export const CaseDataTemplatesPage: React.FC = () => {
           Define data entry templates for client-product combinations
         </p>
       </div>
+
+      {templatesError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load templates. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchTemplates()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards — 5-card shell per feedback_fe_code_standards.md §9 */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">

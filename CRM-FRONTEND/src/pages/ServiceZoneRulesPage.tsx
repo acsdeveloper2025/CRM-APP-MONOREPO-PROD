@@ -191,7 +191,12 @@ export function ServiceZoneRulesPage() {
     ]
   );
 
-  const { data: rulesResponse, isLoading: loadingRules } = useQuery({
+  const {
+    data: rulesResponse,
+    isLoading: loadingRules,
+    isError: isRulesError,
+    refetch: refetchRules,
+  } = useQuery({
     queryKey: ['service-zone-rules', listArgs],
     queryFn: () => serviceZoneRulesService.listRules(listArgs),
   });
@@ -587,6 +592,24 @@ export function ServiceZoneRulesPage() {
           before pricing is applied.
         </p>
       </div>
+
+      {isRulesError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load service zone rules. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchRules()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 5-card stats grid */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">

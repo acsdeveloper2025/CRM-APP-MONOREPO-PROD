@@ -106,7 +106,12 @@ export function UsersPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const { data: usersData, isLoading: usersLoading } = useQuery({
+  const {
+    data: usersData,
+    isLoading: usersLoading,
+    isError: usersError,
+    refetch: refetchUsers,
+  } = useQuery({
     queryKey: [
       'users',
       search.debouncedSearchValue,
@@ -204,6 +209,24 @@ export function UsersPage() {
           </p>
         </div>
       </div>
+
+      {usersError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load users. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchUsers()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {canViewUsersData && <UserStatsCards stats={resolvedUserStats} />}
 

@@ -117,7 +117,12 @@ export function PincodesPage() {
     [debouncedSearchValue, status, cityId, dateFrom, dateTo, sortConfig, page, pageSize]
   );
 
-  const { data: listData, isLoading } = useQuery({
+  const {
+    data: listData,
+    isLoading,
+    isError: isPincodesError,
+    refetch: refetchPincodes,
+  } = useQuery({
     queryKey: ['pincodes', queryArgs],
     queryFn: () => locationsService.getPincodes(queryArgs),
   });
@@ -280,6 +285,24 @@ export function PincodesPage() {
           <p className="text-sm text-muted-foreground">Manage pincode reference data.</p>
         </div>
       </div>
+
+      {isPincodesError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load pincodes. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchPincodes()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>

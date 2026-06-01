@@ -78,7 +78,12 @@ export function DataEntryDashboardPage() {
     setCurrentPage(1);
   }, [debouncedSearchValue, statusFilter]);
 
-  const { data: dashboardRes, isLoading } = useQuery({
+  const {
+    data: dashboardRes,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['data-entry-dashboard', debouncedSearchValue, statusFilter, currentPage, pageSize],
     queryFn: async () => {
       const params: Record<string, string | number> = {
@@ -135,6 +140,24 @@ export function DataEntryDashboardPage() {
         <h1 className="text-2xl font-bold tracking-tight">Data Entry</h1>
         <p className="text-muted-foreground text-sm">Track data entry progress across all cases</p>
       </div>
+
+      {isError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load data entry records. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">

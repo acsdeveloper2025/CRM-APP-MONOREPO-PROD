@@ -150,6 +150,7 @@ export const TATMonitoringPage: React.FC = () => {
   const {
     data: criticalData,
     isLoading: criticalLoading,
+    isError: criticalError,
     refetch: refetchCritical,
   } = useOverdueTasks({
     threshold: 3,
@@ -163,6 +164,7 @@ export const TATMonitoringPage: React.FC = () => {
   const {
     data: highData,
     isLoading: highLoading,
+    isError: highError,
     refetch: refetchHigh,
   } = useOverdueTasks({
     threshold: 2,
@@ -175,6 +177,7 @@ export const TATMonitoringPage: React.FC = () => {
   const {
     data: allData,
     isLoading: allLoading,
+    isError: allError,
     refetch: refetchAll,
   } = useOverdueTasks({
     threshold: 1,
@@ -436,6 +439,24 @@ export const TATMonitoringPage: React.FC = () => {
           <p className="text-muted-foreground mt-1">Track and manage overdue verification tasks</p>
         </div>
       </div>
+
+      {(criticalError || highError || allError) && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load overdue tasks. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleRefresh()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">

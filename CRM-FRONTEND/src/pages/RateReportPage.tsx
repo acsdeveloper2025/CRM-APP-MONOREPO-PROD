@@ -179,7 +179,12 @@ export function RateReportPage() {
     ]
   );
 
-  const { data: ratesData, isLoading: ratesLoading } = useQuery({
+  const {
+    data: ratesData,
+    isLoading: ratesLoading,
+    isError: ratesError,
+    refetch: refetchRates,
+  } = useQuery({
     queryKey: ['rates', listArgs],
     queryFn: () => ratesService.getRates(listArgs),
   });
@@ -422,6 +427,24 @@ export function RateReportPage() {
           View and manage all configured rates with comprehensive filtering and reporting.
         </p>
       </div>
+
+      {ratesError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load rates. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchRates()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 5-card stats grid */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">

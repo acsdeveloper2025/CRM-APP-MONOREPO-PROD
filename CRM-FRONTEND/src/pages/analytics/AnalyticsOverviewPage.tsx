@@ -1,12 +1,17 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useCaseAnalytics } from '@/hooks/useAnalytics';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 import { FileText, Users, CheckSquare, TrendingUp, Clock } from 'lucide-react';
 
 export const AnalyticsOverviewPage: React.FC = () => {
-  const { data: caseAnalytics } = useCaseAnalytics({
+  const {
+    data: caseAnalytics,
+    isError: caseAnalyticsError,
+    refetch: refetchCaseAnalytics,
+  } = useCaseAnalytics({
     dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     dateTo: new Date().toISOString().split('T')[0],
   });
@@ -64,6 +69,24 @@ export const AnalyticsOverviewPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {caseAnalyticsError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load analytics data. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchCaseAnalytics()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <Card>

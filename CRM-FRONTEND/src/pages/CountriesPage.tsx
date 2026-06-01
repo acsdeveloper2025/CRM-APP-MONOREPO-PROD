@@ -122,7 +122,12 @@ export function CountriesPage() {
     [debouncedSearchValue, status, dateFrom, dateTo, sortConfig, page, pageSize]
   );
 
-  const { data: listData, isLoading } = useQuery({
+  const {
+    data: listData,
+    isLoading,
+    isError: isCountriesError,
+    refetch: refetchCountries,
+  } = useQuery({
     queryKey: ['countries', queryArgs],
     queryFn: () => locationsService.getCountries(queryArgs),
   });
@@ -258,6 +263,24 @@ export function CountriesPage() {
           <p className="text-sm text-muted-foreground">Manage country reference data.</p>
         </div>
       </div>
+
+      {isCountriesError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load countries. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchCountries()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>

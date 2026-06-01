@@ -297,7 +297,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
     recheckedOnly: recheckedOnly || undefined,
   };
 
-  const { data: taskData, isLoading, refetch } = useKYCTasks(queryFilters);
+  const { data: taskData, isLoading, isError, refetch } = useKYCTasks(queryFilters);
 
   // 5-card stats from new /kyc/tasks/stats endpoint. Ignores route status
   // narrowing so counters cover the full in-scope KYC pool.
@@ -361,6 +361,24 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
           <p className="text-sm text-muted-foreground">{pageSubtitle}</p>
         </div>
       </div>
+
+      {isError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load KYC tasks. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 5-card stats grid (shared across all 3 routes — reflects full
           in-scope KYC pool regardless of route status narrowing). */}

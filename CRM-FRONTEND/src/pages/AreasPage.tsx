@@ -121,7 +121,12 @@ export function AreasPage() {
     [debouncedSearchValue, status, pincodeId, dateFrom, dateTo, sortConfig, page, pageSize]
   );
 
-  const { data: listData, isLoading } = useQuery({
+  const {
+    data: listData,
+    isLoading,
+    isError: isAreasError,
+    refetch: refetchAreas,
+  } = useQuery({
     queryKey: ['areas', queryArgs],
     queryFn: () => locationsService.getAreas(queryArgs),
   });
@@ -284,6 +289,24 @@ export function AreasPage() {
           <p className="text-sm text-muted-foreground">Manage area reference data.</p>
         </div>
       </div>
+
+      {isAreasError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load areas. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchAreas()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>

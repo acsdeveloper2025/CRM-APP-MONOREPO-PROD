@@ -230,7 +230,7 @@ export function ReportTemplatesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterClientId, filterProductId, status, sort, pageSize, debouncedSearchValue]);
 
-  const { data: listRes, isLoading, refetch } = useReportTemplates(listParams);
+  const { data: listRes, isLoading, isError, refetch } = useReportTemplates(listParams);
   const templates = useMemo(() => {
     if (!listRes?.data) {
       return [];
@@ -522,6 +522,24 @@ export function ReportTemplatesPage() {
           HTML / Handlebars PDF report templates. One active per client + product.
         </p>
       </div>
+
+      {isError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load templates. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards — 5-card shell per feedback_fe_code_standards.md §9 */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">

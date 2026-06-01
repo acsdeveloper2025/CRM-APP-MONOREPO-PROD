@@ -186,7 +186,12 @@ export function DataEntryMISPage() {
     search: debouncedSearchValue || undefined,
   };
 
-  const { data: misRes, isLoading } = useQuery({
+  const {
+    data: misRes,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: [
       'data-entry-mis',
       clientId,
@@ -440,6 +445,24 @@ export function DataEntryMISPage() {
 
       {ready && (
         <>
+          {isError && (
+            <Card className="border-destructive bg-destructive/10">
+              <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-destructive">
+                  Could not load data entry records. Check your connection and try again.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetch()}
+                  className="border-destructive text-destructive hover:bg-destructive/20"
+                >
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* 5-card stats from /mis/stats */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             <Card>

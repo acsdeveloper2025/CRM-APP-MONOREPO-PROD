@@ -124,7 +124,12 @@ export const CompletedCasesPage: React.FC = () => {
     sortOrder: sortPair.sortOrder,
   };
 
-  const { data: casesData, isLoading } = useCases(query);
+  const {
+    data: casesData,
+    isLoading,
+    isError: isCasesError,
+    refetch: refetchCases,
+  } = useCases(query);
   const { data: clientsData } = useClients({ limit: 500 }, { enabled: canViewClientsFilter });
   const { refreshCases } = useRefreshCases();
 
@@ -205,6 +210,24 @@ export const CompletedCasesPage: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {isCasesError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load completed cases. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchCases()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>

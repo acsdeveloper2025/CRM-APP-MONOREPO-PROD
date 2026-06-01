@@ -128,7 +128,12 @@ export function ClientsPage() {
     [debouncedSearchValue, status, dateFrom, dateTo, product, sortConfig, page, pageSize]
   );
 
-  const { data: clientsData, isLoading } = useQuery({
+  const {
+    data: clientsData,
+    isLoading,
+    isError: isClientsError,
+    refetch: refetchClients,
+  } = useQuery({
     queryKey: ['clients', queryArgs],
     queryFn: () => clientsService.getClients(queryArgs),
   });
@@ -302,6 +307,24 @@ export function ClientsPage() {
           </p>
         </div>
       </div>
+
+      {isClientsError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load clients. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchClients()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>

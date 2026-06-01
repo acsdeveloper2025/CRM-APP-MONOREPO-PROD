@@ -89,7 +89,6 @@ const statusBadgeClassNames: Record<FieldMonitoringLiveStatus, string> = {
   Offline: 'bg-muted text-foreground border-border',
 };
 
-
 const formatTimestamp = (value: string | null | undefined): string => {
   if (!value) {
     return '-';
@@ -585,6 +584,7 @@ function FieldMonitoringRosterView() {
   const {
     data: rosterResponse,
     isLoading: rosterLoading,
+    isError: rosterError,
     refetch: refetchRoster,
   } = useQuery({
     queryKey: ['field-monitoring', 'users', 'table', page, pageSize, commonRosterFilters],
@@ -673,6 +673,24 @@ function FieldMonitoringRosterView() {
           Refresh
         </Button>
       </div>
+
+      {rosterError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load field agents. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchRoster()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatsCard
