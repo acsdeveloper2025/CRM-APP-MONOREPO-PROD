@@ -21,6 +21,10 @@ import { config } from '@/config';
 import { logger } from '@/utils/logger';
 import { NotificationService, type NotificationData } from '@/services/NotificationService';
 import { errorMessage } from '@/utils/errorMessage';
+import {
+  writeNotificationDeadLetter,
+  recoverNotificationDeadLetter,
+} from './notificationDeadLetter';
 
 // Notification job data interfaces
 export interface SingleNotificationJobData {
@@ -561,6 +565,14 @@ const buildUnifiedWorker = (): Worker<NotificationJobData> => {
       error: err.message,
       attempts: job?.attemptsMade,
     });
+    // Audit #10: on TERMINAL failure (all retries exhausted) the job is
+    // about to be evicted (removeOnFail keeps only 50). Write it to the
+    // local dead-letter file so it survives + is replayed at next boot,
+    // instead of being lost silently. Mirrors auditLogQueue's hook.
+    const maxAttempts = typeof job?.opts?.attempts === 'number' ? job.opts.attempts : 1;
+    if (job && job.attemptsMade >= maxAttempts) {
+      void writeNotificationDeadLetter(job.name, job.data);
+    }
   });
   w.on('stalled', jobId => {
     logger.warn('Notification job stalled', { jobId });
@@ -584,6 +596,14 @@ export const startNotificationProcessor = (): void => {
   processorStarted = true;
   workers.push(buildUnifiedWorker());
   logger.info('Notification queue processor started');
+
+  // Audit #10: replay any notifications dead-lettered in a previous outage
+  // now that the worker (and presumably Redis) is back up.
+  void recoverNotificationDeadLetter(async (jobName, data) => {
+    await notificationQueue.add(jobName, data);
+  }).catch(err => {
+    logger.error('Notification DLQ recovery failed', { error: errorMessage(err) });
+  });
 };
 
 /**
