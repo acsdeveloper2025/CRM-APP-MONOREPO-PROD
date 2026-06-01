@@ -561,6 +561,33 @@ export class MobileFormController {
     return photos.length;
   }
 
+  /**
+   * P0b (ERROR_HANDLING_AUDIT 2026-06-01): re-gate on the STORED photo count.
+   * processVerificationImages swallows per-image failures, so the input-count
+   * gate (countSubmissionPhotos) can pass while fewer photos actually persist —
+   * recording a "complete" submission with missing IT Act §65B evidence. Sends
+   * a 400 and returns true when the caller must stop.
+   */
+  private static rejectIfPhotosUnderStored(
+    res: Response,
+    uploadedImages: VerificationImageRecord[],
+    required: number
+  ): boolean {
+    if (uploadedImages.length >= required) {
+      return false;
+    }
+    res.status(400).json({
+      success: false,
+      message: `Some photos failed to upload — please retry (${uploadedImages.length} of ${required} stored)`,
+      error: {
+        code: 'PHOTO_PERSIST_INCOMPLETE',
+        details: { required, stored: uploadedImages.length },
+        timestamp: new Date().toISOString(),
+      },
+    });
+    return true;
+  }
+
   private static async getReferencedVerificationImages(
     attachmentIds: string[] = []
   ): Promise<VerificationImageRecord[]> {
@@ -2672,6 +2699,10 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for residence verification (Task: ${taskNumber})`
       );
 
+      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+        return;
+      }
+
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
         formType: 'RESIDENCE',
@@ -3163,6 +3194,10 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for office verification (Task: ${taskNumber})`
       );
 
+      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+        return;
+      }
+
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
         formType: 'OFFICE',
@@ -3620,6 +3655,10 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for business verification (Task: ${taskNumber})`
       );
 
+      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+        return;
+      }
+
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
         formType: 'BUSINESS',
@@ -4062,6 +4101,10 @@ export class MobileFormController {
       logger.info(
         `✅ Processed ${uploadedImages.length} verification images for builder verification (Task: ${task.taskNumber})`
       );
+
+      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+        return;
+      }
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -4749,6 +4792,10 @@ export class MobileFormController {
       logger.info(
         `✅ Processed ${uploadedImages.length} verification images for DSA/DST Connector verification (Task: ${task.taskNumber})`
       );
+
+      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+        return;
+      }
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
@@ -5513,6 +5560,10 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for Property APF verification (Task: ${task.taskNumber})`
       );
 
+      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+        return;
+      }
+
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
         formType: 'PROPERTY_APF',
@@ -5939,6 +5990,10 @@ export class MobileFormController {
       logger.info(
         `✅ Processed ${uploadedImages.length} verification images for NOC verification (Task: ${task.taskNumber})`
       );
+
+      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+        return;
+      }
 
       // Prepare verification data (excluding old attachment references)
       const verificationData = {
