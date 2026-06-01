@@ -567,21 +567,30 @@ export class MobileFormController {
    * gate (countSubmissionPhotos) can pass while fewer photos actually persist —
    * recording a "complete" submission with missing IT Act §65B evidence. Sends
    * a 400 and returns true when the caller must stop.
+   *
+   * Fix 2026-06-01: count photos persisted against THIS task (the source of
+   * truth: verification_attachments.verification_task_id) rather than the
+   * images resolvable from the submit request. Mobile uploads photos via the
+   * separate /attachments endpoint (submission_id NULL, numeric backend ids),
+   * so getReferencedVerificationImages can never match them and uploadedImages
+   * was always 0 — falsely tripping this gate on every field submit.
    */
-  private static rejectIfPhotosUnderStored(
+  private static async rejectIfPhotosUnderStored(
     res: Response,
-    uploadedImages: VerificationImageRecord[],
+    taskId: string,
     required: number
-  ): boolean {
-    if (uploadedImages.length >= required) {
+  ): Promise<boolean> {
+    const { totalImages, totalSelfies } = await MobileFormController.countTaskAttachments(taskId);
+    const stored = totalImages + totalSelfies;
+    if (stored >= required) {
       return false;
     }
     res.status(400).json({
       success: false,
-      message: `Some photos failed to upload — please retry (${uploadedImages.length} of ${required} stored)`,
+      message: `Some photos failed to upload — please retry (${stored} of ${required} stored)`,
       error: {
         code: 'PHOTO_PERSIST_INCOMPLETE',
-        details: { required, stored: uploadedImages.length },
+        details: { required, stored },
         timestamp: new Date().toISOString(),
       },
     });
@@ -2699,7 +2708,9 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for residence verification (Task: ${taskNumber})`
       );
 
-      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+      if (
+        await MobileFormController.rejectIfPhotosUnderStored(res, taskId || verificationTaskId, 5)
+      ) {
         return;
       }
 
@@ -3194,7 +3205,9 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for office verification (Task: ${taskNumber})`
       );
 
-      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+      if (
+        await MobileFormController.rejectIfPhotosUnderStored(res, taskId || verificationTaskId, 5)
+      ) {
         return;
       }
 
@@ -3655,7 +3668,9 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for business verification (Task: ${taskNumber})`
       );
 
-      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+      if (
+        await MobileFormController.rejectIfPhotosUnderStored(res, taskId || verificationTaskId, 5)
+      ) {
         return;
       }
 
@@ -4102,7 +4117,9 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for builder verification (Task: ${task.taskNumber})`
       );
 
-      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+      if (
+        await MobileFormController.rejectIfPhotosUnderStored(res, taskId || verificationTaskId, 5)
+      ) {
         return;
       }
 
@@ -4793,7 +4810,9 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for DSA/DST Connector verification (Task: ${task.taskNumber})`
       );
 
-      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+      if (
+        await MobileFormController.rejectIfPhotosUnderStored(res, taskId || verificationTaskId, 5)
+      ) {
         return;
       }
 
@@ -5560,7 +5579,9 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for Property APF verification (Task: ${task.taskNumber})`
       );
 
-      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+      if (
+        await MobileFormController.rejectIfPhotosUnderStored(res, taskId || verificationTaskId, 5)
+      ) {
         return;
       }
 
@@ -5991,7 +6012,9 @@ export class MobileFormController {
         `✅ Processed ${uploadedImages.length} verification images for NOC verification (Task: ${task.taskNumber})`
       );
 
-      if (MobileFormController.rejectIfPhotosUnderStored(res, uploadedImages, 5)) {
+      if (
+        await MobileFormController.rejectIfPhotosUnderStored(res, taskId || verificationTaskId, 5)
+      ) {
         return;
       }
 
