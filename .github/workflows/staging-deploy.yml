@@ -46,47 +46,27 @@ env:
 
 jobs:
   # ---- Test gate (B) -------------------------------------------------------
-  # Runs the backend suite (typecheck + lint + unit + DB-backed integration)
-  # before anything ships. The integration suite includes the mobile
-  # photo-gate regression test (mobileFormPhotoGate) — the class of bug that
-  # broke field completions on 2026-06-01 and reached prod precisely because
-  # CI ran no tests. Postgres is seeded from the repo schema/dump; Redis is
-  # provided so socket/queue init doesn't error.
+  # Runs the DB-free backend gate (typecheck + lint + unit tests) before
+  # anything ships. CI previously ran ZERO tests, which is how a 100%-breaking
+  # change to the mobile submit path reached prod on 2026-06-01.
+  #
+  # NOTE: the DB-backed integration suite (which holds the mobile photo-gate
+  # regression test, mobileFormPhotoGate) is NOT run here yet — acs_db_final_version.sql
+  # has inline FKs that reference PKs added later, so it does not restore
+  # top-to-bottom via psql; seeding an ephemeral CI DB needs a proper
+  # provisioning step. Tracked as a follow-up. The integration suite still runs
+  # locally via `npm run test:integration` and the pre-push hook.
   #
   # ROLLOUT: this job does NOT gate `build` yet (no `needs:` wired into build)
-  # so a half-configured gate cannot block prod deploys. Once it is observed
-  # green in CI, a follow-up flips `build: needs: test`.
+  # so a half-configured gate cannot block prod deploys. Once observed green in
+  # CI, a follow-up flips `build: needs: test`.
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: acs_user
-          POSTGRES_PASSWORD: acs_password
-          POSTGRES_DB: acs_db_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U acs_user -d acs_db_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 15
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 15
     env:
       NODE_ENV: test
-      DATABASE_URL: postgresql://acs_user:acs_password@localhost:5432/acs_db_test
+      DATABASE_URL: postgresql://localhost:5432/acs_db_test
       JWT_SECRET: ci-test-jwt-secret
       JWT_REFRESH_SECRET: ci-test-jwt-refresh-secret
-      REDIS_URL: redis://localhost:6379
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -102,15 +82,6 @@ jobs:
         working-directory: CRM-BACKEND
         run: npm ci
 
-      - name: Load schema + seed into acs_db_test
-        # Use the pg17 client from the image (the dump uses \restrict, a
-        # psql-17 meta-command the runner's older client can't parse).
-        run: |
-          docker run --rm --network host -e PGPASSWORD=acs_password \
-            -v "$PWD:/work" postgres:17-alpine \
-            psql -h localhost -U acs_user -d acs_db_test -v ON_ERROR_STOP=1 \
-            -f /work/acs_db_final_version.sql
-
       - name: Typecheck
         working-directory: CRM-BACKEND
         run: npm run typecheck
@@ -122,10 +93,6 @@ jobs:
       - name: Unit tests
         working-directory: CRM-BACKEND
         run: npm test
-
-      - name: Integration tests
-        working-directory: CRM-BACKEND
-        run: npm run test:integration
 
   # ---- Build & push images -------------------------------------------------
   build:
