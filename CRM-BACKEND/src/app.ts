@@ -182,7 +182,41 @@ app.use(cookieParser());
 // (mobile + fetch reads) OR the crm_asset_token httpOnly cookie (FE
 // <img> tags). Closes the unauthenticated /uploads exposure flagged
 // in AUDIT_2026_05_17_CODE_QUALITY.md T0-2.
-app.use('/uploads', requireAssetAuth, express.static(path.join(process.cwd(), 'uploads')));
+//
+// IMG-1 (audit 2026-06-01): requireAssetAuth only verifies the token is
+// VALID — it does NOT check per-case scope, so the raw /uploads mount let
+// any authenticated user read another case's evidence bytes (IDOR proven
+// at runtime: a field user with no assignment to a case fetched its image).
+// Evidence images (/uploads/verification/**) have no legitimate raw consumer
+// — the web + mobile clients fetch bytes through the scoped controller routes
+// (/cases/verification-images/:id/serve|thumbnail) by image id, which run
+// verifyCaseLevelAccess. So block the verification subtree at the raw mount;
+// other subtrees (profile-photos, etc.) stay readable for <img src> avatars.
+app.use(
+  '/uploads',
+  requireAssetAuth,
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (req.path.startsWith('/verification/')) {
+      res.status(403).json({
+        success: false,
+        message: 'Evidence images must be fetched via the verification image endpoint',
+        error: { code: 'FORBIDDEN_RAW_EVIDENCE_ACCESS' },
+      });
+      return;
+    }
+    next();
+  },
+  // IMG-11 (audit 2026-06-01): positive max-age on the static assets that still
+  // serve raw (profile photos etc.). They are cache-bustable via a ?v=<ts> query
+  // param on upload, so a 7-day cache is safe and removes the per-view
+  // revalidation round-trip (JWT verify + disk stat) the prior max-age=0 forced.
+  // ETag/Last-Modified stay on for conditional revalidation after expiry.
+  express.static(path.join(process.cwd(), 'uploads'), {
+    maxAge: '7d',
+    etag: true,
+    lastModified: true,
+  })
+);
 
 // Input sanitization — strip XSS from request body and query strings
 import { sanitizeInput } from '@/middleware/sanitize';

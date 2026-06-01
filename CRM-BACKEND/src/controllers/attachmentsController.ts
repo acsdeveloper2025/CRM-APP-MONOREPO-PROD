@@ -14,7 +14,6 @@ import multer from 'multer';
 import path from 'path';
 import fs, { promises as fsp } from 'fs';
 import crypto from 'crypto';
-import sharp from 'sharp';
 import { generateRendition, requiresRendition } from '@/services/attachmentRenditionService';
 import { storage as objectStorage, StorageKeys } from '@/services/storage';
 
@@ -1025,40 +1024,14 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     res.setHeader('Cache-Control', 'private, max-age=3600'); // Cache for 1 hour
     // CORS headers are handled globally in app.ts (credentials-aware)
 
-    if (String(attachment.mimeType || '').startsWith('image/')) {
-      try {
-        const createdAt = attachment.createdAt ? new Date(attachment.createdAt) : new Date();
-        const dateLabel = Number.isNaN(createdAt.getTime())
-          ? new Date().toLocaleString()
-          : createdAt.toLocaleString();
-        const watermarkText = `ACS CRM | Case #${attachment.caseId} | ${dateLabel}`;
-        const escapedText = watermarkText
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&apos;');
-        const svgOverlay = `
-          <svg width="800" height="56" xmlns="http://www.w3.org/2000/svg">
-            <rect x="0" y="0" width="800" height="56" fill="rgba(0,0,0,0.45)" />
-            <text x="14" y="35" fill="white" font-size="18" font-family="Arial, sans-serif">${escapedText}</text>
-          </svg>
-        `;
-        const watermarkedBuffer = await sharp(filePath)
-          .composite([{ input: Buffer.from(svgOverlay), gravity: 'southeast' }])
-          .toBuffer();
-        res.setHeader('Content-Length', watermarkedBuffer.length.toString());
-        res.end(watermarkedBuffer);
-      } catch (watermarkError) {
-        logger.error('Watermark generation failed, serving original file:', watermarkError);
-        const fileStream = fs.createReadStream(filePath);
-        fileStream.pipe(res);
-      }
-    } else {
-      // Stream non-image files as-is
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
-    }
+    // IMG-3 (audit 2026-06-01): stream the raw, immutable bytes for all file
+    // types. The previous per-request sharp watermark composite re-encoded every
+    // image on each view (no caching; defeated the cache header) — the #1 CPU/RAM
+    // hot spot at scale. The visible label is now rendered by the FE metadata
+    // overlay (2026-05-31 camera rework); evidence integrity is the stored hash
+    // over the raw bytes, not a pixel overlay.
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
 
     logger.info(`Served attachment: ${id}`, {
       userId: req.user?.id,

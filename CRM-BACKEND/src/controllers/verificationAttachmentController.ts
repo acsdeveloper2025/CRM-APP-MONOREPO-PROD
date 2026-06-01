@@ -954,38 +954,21 @@ export class VerificationAttachmentController {
       res.setHeader('Content-Disposition', `inline; filename="${image.originalName}"`);
       res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
 
-      if (String(image.mimeType || '').startsWith('image/')) {
-        try {
-          const watermarkText = `ACS CRM | Case ${image.caseId} | Verification`;
-          const escapedText = watermarkText
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&apos;');
-
-          const svgOverlay = `
-            <svg width="820" height="56" xmlns="http://www.w3.org/2000/svg">
-              <rect x="0" y="0" width="820" height="56" fill="rgba(0,0,0,0.45)" />
-              <text x="14" y="35" fill="white" font-size="18" font-family="Arial, sans-serif">${escapedText}</text>
-            </svg>
-          `;
-
-          const watermarkedBuffer = await sharp(filePath)
-            .composite([{ input: Buffer.from(svgOverlay), gravity: 'southeast' }])
-            .toBuffer();
-
-          res.setHeader('Content-Length', watermarkedBuffer.length.toString());
-          return res.end(watermarkedBuffer);
-        } catch (watermarkError) {
-          logger.error(
-            'Watermark generation failed, serving original verification image:',
-            watermarkError
-          );
-        }
-      }
-
-      res.setHeader('Content-Length', String(image.fileSize || 0));
+      // IMG-3 (audit 2026-06-01): stream the raw, immutable bytes. The previous
+      // per-request sharp watermark composite re-encoded the full image on EVERY
+      // view (proven at runtime: ~0.7s/hit, no caching, raw 11.5KB served as
+      // 19.9KB) — the #1 CPU/RAM hot spot and it defeated the 1-year cache header
+      // (a per-request-generated body can't be cached by browser/proxy/CDN).
+      // The visible label is now rendered by the FE metadata overlay (shipped in
+      // the 2026-05-31 camera rework); evidence integrity is the server_sha256_hash
+      // over these raw bytes, not a pixel overlay. Streaming raw bytes makes the
+      // cache header real and removes the sharp decode/encode per request.
+      // Content-Length from the actual file on disk — the DB column is
+      // file_size_bytes (camelCased to fileSizeBytes by the query layer), so the
+      // old `image.fileSize` read was always undefined; under the sharp path it
+      // was harmlessly overwritten, but streaming raw bytes needs a correct
+      // length or the response is truncated to 0.
+      res.setHeader('Content-Length', String(fsSync.statSync(filePath).size));
       const fileStream = fsSync.createReadStream(filePath);
       fileStream.pipe(res);
     } catch (error) {
@@ -1008,7 +991,7 @@ export class VerificationAttachmentController {
       // Get image details from database
       const imageResult = await query(
         // NEW-CRIT-1 (AUDIT 2026-05-17): 404 on soft-deleted (DPDP erasure intent).
-        `SELECT filename, original_name, mime_type, file_size_bytes, thumbnail_path, case_id, verification_type
+        `SELECT filename, original_name, mime_type, file_size_bytes, thumbnail_path, case_id
          FROM verification_attachments WHERE id = $1 AND deleted_at IS NULL`,
         [imageId]
       );
@@ -1036,16 +1019,17 @@ export class VerificationAttachmentController {
         return VerificationAttachmentController.serveVerificationImage(req, res);
       }
 
-      // Construct thumbnail file path
-      const thumbnailPath = path.join(
-        process.cwd(),
-        'uploads',
-        'verification',
-        image.verificationType.toLowerCase(),
-        image.caseId,
-        'thumbnails',
-        `thumb_${image.filename}`
-      );
+      // IMG-2 (audit 2026-06-01): resolve the thumbnail from the stored
+      // thumbnail_path (written correctly at upload), not by reconstructing
+      // it. The old reconstruction inserted a bogus
+      // "<lower(verificationType)>/" segment, so existsSync ALWAYS failed and
+      // every thumbnail request fell through to the full-res,
+      // per-request-watermarked image (proven at runtime: a 1600x1200/19984B
+      // image was served where a 200x200/523B thumbnail was requested).
+      const dbThumbPath = String(image.thumbnailPath || '');
+      const thumbnailPath = dbThumbPath.startsWith('/')
+        ? path.join(process.cwd(), dbThumbPath)
+        : path.join(process.cwd(), 'uploads', dbThumbPath);
 
       // Check if thumbnail exists, fallback to original
       if (!fsSync.existsSync(thumbnailPath)) {
