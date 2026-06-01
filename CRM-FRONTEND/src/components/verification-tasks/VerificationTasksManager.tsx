@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useVerificationTasks } from '@/hooks/useVerificationTasks';
 import { VerificationTasksService } from '@/services/verificationTasks';
-import { logger } from '@/utils/logger';
+import type {
+  CreateVerificationTaskRequest,
+  CompleteVerificationTaskRequest,
+} from '@/types/verificationTask';
 import { VerificationTasksList } from './VerificationTasksList';
 import { CreateTaskModal } from './CreateTaskModal';
 import { TaskAssignmentModal } from './TaskAssignmentModal';
@@ -89,21 +92,45 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
     setSelectedTasks([]);
   };
 
-  // Handle task actions
-  const handleCreateTasks = async (_taskData: unknown[]) => {
-    logger.warn('Not yet implemented: Create tasks');
-    setShowCreateModal(false);
+  // Handle task actions. Mirror handleStartTask: call the service, toast the
+  // outcome, refetch on success. On failure DON'T close the modal/clear the
+  // selection so the user can retry. (Previously these were no-op stubs that
+  // silently discarded the action — ERROR_HANDLING_AUDIT 2026-06-01 #1-3.)
+  const handleCreateTasks = async (taskData: CreateVerificationTaskRequest[]) => {
+    try {
+      await VerificationTasksService.createMultipleTasksForCase(caseId, taskData);
+      toast.success('Verification tasks created');
+      setShowCreateModal(false);
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create tasks');
+    }
   };
 
-  const handleCompleteTask = async (_completionData: unknown) => {
-    logger.warn('Not yet implemented: Complete task');
-    setShowCompleteModal(false);
-    setSelectedTaskId(null);
+  const handleCompleteTask = async (completionData: CompleteVerificationTaskRequest) => {
+    if (!selectedTaskId) {
+      return;
+    }
+    try {
+      await VerificationTasksService.completeTask(selectedTaskId, completionData);
+      toast.success('Task completed');
+      setShowCompleteModal(false);
+      setSelectedTaskId(null);
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to complete task');
+    }
   };
 
-  const handleBulkAssign = async (_assignedTo: string, _reason?: string) => {
-    logger.warn('Not yet implemented: Bulk assign tasks');
-    clearSelection();
+  const handleBulkAssign = async (assignedTo: string, reason?: string) => {
+    try {
+      await VerificationTasksService.bulkAssignTasks(selectedTasks, assignedTo, reason);
+      toast.success('Tasks assigned');
+      clearSelection();
+      refetch();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to assign tasks');
+    }
   };
 
   const handleStartTask = async (taskId: string) => {
