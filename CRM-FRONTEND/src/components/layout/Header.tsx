@@ -12,6 +12,7 @@ import {
   PanelLeftOpen,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -429,6 +430,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                     </div>
                     <span className="line-clamp-2 text-xs text-muted-foreground">
                       {notification.message}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {format(new Date(notification.createdAt), 'd MMM yyyy, h:mm a')}
                     </span>
                   </DropdownMenuItem>
                 ))
