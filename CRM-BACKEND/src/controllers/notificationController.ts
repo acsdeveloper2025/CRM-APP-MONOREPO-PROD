@@ -36,11 +36,76 @@ export class NotificationController {
   // /api/mobile/notifications) flow through this method, so one filter
   // covers all callers. UUID validation upstream in `getNotifications`
   // before this is called.
-  private static async getScopedNotificationRows(
+  // IMG-6 / notif-pagination (audit 2026-06-01): single source of WHERE-truth
+  // for both the row fetch and the count query so list + counts stay in
+  // lockstep (same shape as the build<Resource>WhereClause rule). $1 = user.id,
+  // $2 = optional case_id filter. Excludes soft-deleted + muted (case + task).
+  private static readonly NOTIFICATION_WHERE = `
+        WHERE user_id = $1
+          AND is_deleted = false
+          AND ($2::uuid IS NULL OR case_id = $2::uuid)
+          -- Phase 3.2 (2026-05-04): exclude muted cases. A mute is
+          -- active if expires_at IS NULL or in the future. When the
+          -- caller is *already* asking for a specific case feed
+          -- (?caseId=...) we still hide muted ones (consistent with
+          -- WhatsApp behavior — muted = silent on the bell, but the
+          -- timeline tab on CaseDetailPage uses a different endpoint).
+          AND NOT EXISTS (
+            SELECT 1
+            FROM notification_mutes nm
+            WHERE nm.user_id = $1
+              AND nm.case_id IS NOT NULL
+              AND nm.case_id = notifications.case_id
+              AND (nm.expires_at IS NULL OR nm.expires_at > NOW())
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM notification_mutes nm
+            WHERE nm.user_id = $1
+              AND nm.task_id IS NOT NULL
+              AND nm.task_id = notifications.task_id
+              AND (nm.expires_at IS NULL OR nm.expires_at > NOW())
+          )`;
+
+  /**
+   * Scope-aware count of a user's notifications over NOTIFICATION_WHERE.
+   * Computed in SQL (no per-row RBAC scope filter), so it may slightly
+   * OVER-count if the viewer has since lost case/task access to some rows —
+   * it never UNDER-counts, so the bell badge never hides an unread. This is
+   * the deliberate tradeoff vs. scope-filtering the entire feed on every poll
+   * (which is what the old LIMIT-1000-then-JS-count did, and it under-counted
+   * + truncated total past 1000 rows — audit 2026-06-01).
+   */
+  private static async getNotificationCounts(
     user: NonNullable<AuthenticatedRequest['user']>,
     caseId?: string | null
+  ): Promise<{ total: number; unread: number }> {
+    const sqlCaseId = caseId && caseId.length > 0 ? caseId : null;
+    const result = await query<{ total: number; unread: number }>(
+      `
+        SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE is_read = false)::int AS unread
+        FROM notifications
+        ${NotificationController.NOTIFICATION_WHERE}
+      `,
+      [user.id, sqlCaseId]
+    );
+    return { total: result.rows[0]?.total ?? 0, unread: result.rows[0]?.unread ?? 0 };
+  }
+
+  private static async getScopedNotificationRows(
+    user: NonNullable<AuthenticatedRequest['user']>,
+    caseId?: string | null,
+    opts?: { limit?: number; offset?: number; unreadOnly?: boolean }
   ) {
     const sqlCaseId = caseId && caseId.length > 0 ? caseId : null;
+    // Default cap (1000) preserves the prior behavior for the
+    // mark-all-read / mark-all-as-read callers that consume the full feed.
+    // getNotifications passes an explicit small page for true SQL pagination.
+    const limit = opts?.limit ?? 1000;
+    const offset = opts?.offset ?? 0;
+    const unreadOnly = opts?.unreadOnly ?? false;
     const result = await query<{
       id: string;
       title: string;
@@ -82,40 +147,12 @@ export class NotificationController {
           created_at as "created_at",
           updated_at as "updated_at"
         FROM notifications
-        WHERE user_id = $1
-          AND is_deleted = false
-          AND ($2::uuid IS NULL OR case_id = $2::uuid)
-          -- Phase 3.2 (2026-05-04): exclude muted cases. A mute is
-          -- active if expires_at IS NULL or in the future. When the
-          -- caller is *already* asking for a specific case feed
-          -- (?caseId=...) we still hide muted ones (consistent with
-          -- WhatsApp behavior — muted = silent on the bell, but the
-          -- timeline tab on CaseDetailPage uses a different endpoint).
-          AND NOT EXISTS (
-            SELECT 1
-            FROM notification_mutes nm
-            WHERE nm.user_id = $1
-              AND nm.case_id IS NOT NULL
-              AND nm.case_id = notifications.case_id
-              AND (nm.expires_at IS NULL OR nm.expires_at > NOW())
-          )
-          AND NOT EXISTS (
-            SELECT 1
-            FROM notification_mutes nm
-            WHERE nm.user_id = $1
-              AND nm.task_id IS NOT NULL
-              AND nm.task_id = notifications.task_id
-              AND (nm.expires_at IS NULL OR nm.expires_at > NOW())
-          )
+        ${NotificationController.NOTIFICATION_WHERE}
+          AND ($5::boolean = false OR is_read = false)
         ORDER BY created_at DESC
-        -- Bound the per-user fetch so a user with a very large history cannot
-        -- pull their entire notification feed into memory (the JS RBAC scope
-        -- filter + .slice paging ran over the WHOLE result set). 1000 most-
-        -- recent rows covers realistic feeds; the proper fix (push LIMIT +
-        -- scope into SQL true-pagination) is a Phase 3 follow-up.
-        LIMIT 1000
+        LIMIT $3 OFFSET $4
       `,
-      [user.id, sqlCaseId]
+      [user.id, sqlCaseId, limit, offset, unreadOnly]
     );
 
     const { visibleIds, actionTargets } = await filterNotificationsByCurrentScope(
@@ -285,13 +322,26 @@ export class NotificationController {
           ? rawCaseId
           : null;
 
-      const rows = await this.getScopedNotificationRows(req.user!, caseIdFilter);
-      const visibleRows = unreadOnly === 'true' ? rows.filter(row => !row.isRead) : rows;
-      const total = visibleRows.length;
-      const unreadCount = rows.filter(row => !row.isRead).length;
-      const normalizedLimit = Number(limit);
-      const normalizedOffset = Number(offset);
-      const pagedRows = visibleRows.slice(normalizedOffset, normalizedOffset + normalizedLimit);
+      // True SQL pagination (audit 2026-06-01): fetch only the requested page
+      // (scope-filtered per page), and get total/unreadCount from a SQL COUNT
+      // over the same WHERE — NOT from a capped-then-JS-counted feed. The old
+      // path fetched 1000 rows, scope-filtered all of them, then .slice()'d;
+      // past 1000 notifications it under-counted unread, truncated total to
+      // 1000, and made older pages unreachable.
+      const normalizedLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
+      const normalizedOffset = Math.max(Number(offset) || 0, 0);
+      const wantUnreadOnly = unreadOnly === 'true';
+
+      const [pagedRows, counts] = await Promise.all([
+        this.getScopedNotificationRows(req.user!, caseIdFilter, {
+          limit: normalizedLimit,
+          offset: normalizedOffset,
+          unreadOnly: wantUnreadOnly,
+        }),
+        this.getNotificationCounts(req.user!, caseIdFilter),
+      ]);
+
+      const total = wantUnreadOnly ? counts.unread : counts.total;
 
       res.json({
         success: true,
@@ -300,9 +350,9 @@ export class NotificationController {
           total,
           limit: normalizedLimit,
           offset: normalizedOffset,
-          hasMore: total > normalizedOffset + normalizedLimit,
+          hasMore: normalizedOffset + normalizedLimit < total,
         },
-        unreadCount,
+        unreadCount: counts.unread,
         message: 'Notifications retrieved successfully',
       });
     } catch (error) {
