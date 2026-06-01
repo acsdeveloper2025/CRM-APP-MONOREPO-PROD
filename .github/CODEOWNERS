@@ -1,0 +1,20 @@
+# Code owners — GitHub auto-requests review from these owners on any PR that
+# touches the matched paths. Combined with branch protection (require PR +
+# `test` check + 1 review on main), this puts a review checkpoint in front of
+# the surfaces where a silent regression hits prod hardest — the mobile field
+# submit/completion path and the money flow.
+#
+# Single-admin repo today (@acsdeveloper2025): with enforce_admins=false the
+# admin can still merge/own-review, so this is advisory for the admin and
+# enforced for future contributors. Tighten (enforce_admins=true) once a
+# second reviewer exists.
+
+# Mobile field-verification submit + completion (the 2026-06-01 incident surface)
+/CRM-BACKEND/src/controllers/mobileFormController.ts             @acsdeveloper2025
+/CRM-BACKEND/src/controllers/verificationAttachmentController.ts @acsdeveloper2025
+/CRM-BACKEND/src/controllers/verificationTasksController.ts      @acsdeveloper2025
+/CRM-BACKEND/src/services/taskCompletionFinalizer.ts            @acsdeveloper2025
+/CRM-BACKEND/src/routes/mobile.ts                               @acsdeveloper2025
+
+# CI / deploy pipeline
+/.github/                                                        @acsdeveloper2025
