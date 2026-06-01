@@ -209,6 +209,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Untraceable-specific
           contactPerson: residenceData.contactPerson,
           callRemark: residenceData.callRemark,
+          callConfirmation: residenceData.callConfirmation,
           // Extra landmarks
           landmark3: residenceData.landmark3,
           landmark4: residenceData.landmark4,
@@ -286,6 +287,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
 
           // UNTRACEABLE-specific fields
           callRemark: officeData.callRemark,
+          callConfirmation: officeData.callConfirmation,
           contactPerson: officeData.contactPerson,
           landmark3: officeData.landmark3,
           landmark4: officeData.landmark4,
@@ -388,6 +390,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Untraceable
           contactPerson: businessData.contactPerson,
           callRemark: businessData.callRemark,
+          callConfirmation: businessData.callConfirmation,
           // Area assessment
           dominatedArea: businessData.dominatedArea,
           feedbackFromNeighbour: businessData.feedbackFromNeighbour,
@@ -497,6 +500,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Untraceable
           contactPerson: rcData.contactPerson,
           callRemark: rcData.callRemark,
+          callConfirmation: rcData.callConfirmation,
           // Landmarks
           landmark1: rcData.landmark1,
           landmark2: rcData.landmark2,
@@ -591,6 +595,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Untraceable
           contactPerson: builderData.contactPerson,
           callRemark: builderData.callRemark,
+          callConfirmation: builderData.callConfirmation,
           // Area assessment
           dominatedArea: builderData.dominatedArea,
           feedbackFromNeighbour: builderData.feedbackFromNeighbour,
@@ -692,6 +697,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           securityConfirmation: nocData.securityConfirmation,
           contactPerson: nocData.contactPerson,
           callRemark: nocData.callRemark,
+          callConfirmation: nocData.callConfirmation,
           // Clearances
           environmentalClearance: nocData.environmentalClearance,
           fireSafetyClearance: nocData.fireSafetyClearance,
@@ -830,6 +836,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Untraceable
           contactPerson: dsaData.contactPerson,
           callRemark: dsaData.callRemark,
+          callConfirmation: dsaData.callConfirmation,
           // Market
           marketPresence: dsaData.marketPresence,
           competitorAnalysis: dsaData.competitorAnalysis,
@@ -970,6 +977,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           securityConfirmation: propertyData.securityConfirmation,
           contactPerson: propertyData.contactPerson,
           callRemark: propertyData.callRemark,
+          callConfirmation: propertyData.callConfirmation,
           // Area assessment
           dominatedArea: propertyData.dominatedArea,
           feedbackFromNeighbour: propertyData.feedbackFromNeighbour,
@@ -1122,6 +1130,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Untraceable
           contactPerson: propertyData.contactPerson,
           callRemark: propertyData.callRemark,
+          callConfirmation: propertyData.callConfirmation,
           // Area assessment
           dominatedArea: propertyData.dominatedArea,
           feedbackFromNeighbour: propertyData.feedbackFromNeighbour,

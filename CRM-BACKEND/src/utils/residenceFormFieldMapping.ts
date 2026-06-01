@@ -93,6 +93,7 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Untraceable specific fields
   contactPerson: 'contact_person',
   callRemark: 'call_remark',
+  callConfirmation: 'call_confirmation',
 
   // Environment and area details (Common to all forms)
   politicalConnection: 'political_connection',
@@ -254,6 +255,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
   UNTRACEABLE: [
     'contact_person',
     'call_remark',
+    'call_confirmation',
     'locality',
     'landmark1',
     'landmark2',
@@ -331,6 +333,7 @@ export function ensureAllFieldsPopulated(
     'applicant_staying_status',
     'contact_person',
     'call_remark',
+    'call_confirmation',
 
     // Environment and area details
     'political_connection',

@@ -9979,6 +9979,7 @@ CREATE TABLE public.verification_reports (
     old_office_shifted_period character varying(100),
     old_business_shifted_period character varying(100),
     call_remark text,
+    call_confirmation text,
     remarks text,
     other_observation text,
     total_images integer DEFAULT 0,

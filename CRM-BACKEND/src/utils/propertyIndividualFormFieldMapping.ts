@@ -80,6 +80,7 @@ export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
   // Untraceable specific fields
   contactPerson: 'contact_person',
   callRemark: 'call_remark',
+  callConfirmation: 'call_confirmation',
 
   // Individual details (mobile sends these for Property Individual forms)
 
@@ -259,6 +260,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
   ],
   UNTRACEABLE: [
     'call_remark',
+    'call_confirmation',
     'contact_person',
     'locality',
     'landmark1',
@@ -328,6 +330,7 @@ export function ensureAllPropertyIndividualFieldsPopulated(
 
     // Form specific fields
     'call_remark',
+    'call_confirmation',
     'contact_person',
     'security_confirmation',
 

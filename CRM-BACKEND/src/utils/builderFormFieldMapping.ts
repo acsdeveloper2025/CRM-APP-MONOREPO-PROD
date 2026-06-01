@@ -92,6 +92,7 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   // Untraceable specific fields
   contactPerson: 'contact_person',
   callRemark: 'call_remark',
+  callConfirmation: 'call_confirmation',
 
   // Environment and area details
   politicalConnection: 'political_connection',
@@ -245,6 +246,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
   UNTRACEABLE: [
     'contact_person',
     'call_remark',
+    'call_confirmation',
     'locality',
     'landmark1',
     'landmark2',
@@ -327,6 +329,7 @@ export function ensureAllBuilderFieldsPopulated(
     // Untraceable specific fields
     'contact_person',
     'call_remark',
+    'call_confirmation',
 
     // Environment and area details
     'political_connection',

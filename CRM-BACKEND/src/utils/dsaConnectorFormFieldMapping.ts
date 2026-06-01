@@ -105,6 +105,7 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
   // Untraceable specific fields
   contactPerson: 'contact_person',
   callRemark: 'call_remark',
+  callConfirmation: 'call_confirmation',
 
   // Market and competition
 
@@ -246,6 +247,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
   ],
   UNTRACEABLE: [
     'call_remark',
+    'call_confirmation',
     'contact_person',
     'locality',
     'landmark1',
@@ -341,6 +343,7 @@ export function ensureAllDsaConnectorFieldsPopulated(
     'security_confirmation',
     'contact_person',
     'call_remark',
+    'call_confirmation',
 
     // Market presence
 

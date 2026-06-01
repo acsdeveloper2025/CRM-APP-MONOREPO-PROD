@@ -88,6 +88,7 @@ export const PROPERTY_APF_FIELD_MAPPING: DatabaseFieldMapping = {
   // Untraceable specific fields
   contactPerson: 'contact_person',
   callRemark: 'call_remark',
+  callConfirmation: 'call_confirmation',
 
   // Legal and compliance
 
@@ -220,6 +221,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
   ],
   UNTRACEABLE: [
     'call_remark',
+    'call_confirmation',
     'contact_person',
     'locality',
     'landmark1',
@@ -302,6 +304,7 @@ export function ensureAllPropertyApfFieldsPopulated(
     // Form-specific
     'contact_person',
     'call_remark',
+    'call_confirmation',
 
     // Legal & compliance
 

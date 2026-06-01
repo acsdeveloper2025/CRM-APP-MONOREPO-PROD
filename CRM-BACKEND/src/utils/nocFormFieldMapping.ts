@@ -93,6 +93,7 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   // Untraceable specific fields
   contactPerson: 'contact_person',
   callRemark: 'call_remark',
+  callConfirmation: 'call_confirmation',
 
   // Environment and compliance
 
@@ -229,6 +230,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
   ],
   UNTRACEABLE: [
     'call_remark',
+    'call_confirmation',
     'locality',
     'landmark1',
     'landmark2',
@@ -301,6 +303,7 @@ export function ensureAllNocFieldsPopulated(
     // Form-specific fields
     'premises_status',
     'call_remark',
+    'call_confirmation',
 
     // Environment and area details
     'political_connection',

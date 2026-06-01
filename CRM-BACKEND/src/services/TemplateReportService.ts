@@ -122,7 +122,7 @@ Hence the profile is marked as {Final_Status}.`,
     ERT: `Residence Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed. A telephonic attempt was also made and {Call_Remark}.
 
 ENTRY RESTRICTION DETAILS:
 {Name_of_Met_Person} {Met_Person_Confirmation_Text}{Applicant_Staying_Status_That_Clause}. Society board {Society_Name_Plate_Text}.
@@ -286,7 +286,7 @@ Hence the profile is marked as {Final_Status}.`,
     ERT: `Office Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed. A telephonic attempt was also made and {Call_Remark}.
 
 ENTRY RESTRICTION DETAILS:
 {Name_of_Met_Person} {Met_Person_Confirmation_Text} the office existence at the given address{Office_Exists_Status_Clause}.{Applicant_Working_Status_Sentence} Entry is restricted due to security protocols or company policies.
@@ -495,7 +495,7 @@ Hence the profile is marked as {Final_Status}.`,
     ERT: `Business Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed. A telephonic attempt was also made and {Call_Remark}.
 
 ENTRY RESTRICTION DETAILS:
 {Name_of_Met_Person} {Met_Person_Confirmation_Text} the business existence at the given address{Business_Exists_Status_Clause}.{Applicant_Working_Status_Sentence} Entry is restricted due to security protocols or business policies.
@@ -662,7 +662,7 @@ Hence the profile is marked as {Final_Status}.`,
     ERT: `Residence-cum-Office Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed. A telephonic attempt was also made and {Call_Remark}.
 
 ENTRY RESTRICTION DETAILS:
 {Name_of_Met_Person} {Met_Person_Confirmation_Text} the residence and office existence at the given address{Business_Exists_Status_Clause}.{Applicant_Staying_And_Working_Sentence} Entry is restricted due to security protocols or building policies.
@@ -826,7 +826,7 @@ Hence the profile is marked as {Final_Status}.`,
     ERT: `Builder Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed. A telephonic attempt was also made and {Call_Remark}.
 
 ENTRY RESTRICTION DETAILS:
 {Name_of_Met_Person} {Met_Person_Confirmation_Text} the builder office existence at the given address{Business_Exists_Status_Clause}.{Applicant_Working_Status_Sentence} Entry is restricted due to security protocols or office policies.
@@ -975,7 +975,7 @@ Hence the profile is marked as {Final_Status}.`,
     ERT: `NOC Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed. A telephonic attempt was also made and {Call_Remark}.
 
 ENTRY RESTRICTION DETAILS:
 {Name_of_Met_Person} {Met_Person_Confirmation_Text} the NOC office existence at the given address{Office_Exists_Status_Clause}. Entry is restricted due to security protocols or office policies.
@@ -1136,7 +1136,7 @@ Hence the profile is marked as {Final_Status}.`,
     ERT: `DSA/Connector Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed. A telephonic attempt was also made and {Call_Remark}.
 
 ENTRY RESTRICTION DETAILS:
 {Name_of_Met_Person} {Met_Person_Confirmation_Text} the DSA/Connector office existence at the given address{Business_Exists_Status_Clause}. Entry is restricted due to security protocols or office policies.
@@ -1229,7 +1229,7 @@ Hence the profile is marked as {Final_Status}.`,
     ERT: `Property APF Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Building status: {Building_Status}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Building status: {Building_Status}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed. A telephonic attempt was also made and {Call_Remark}.
 
 ENTRY RESTRICTION DETAILS:
 {Name_of_Met_Person} {Met_Person_Confirmation_Text} the property existence at the given address.
@@ -1351,7 +1351,7 @@ Hence the profile is marked as {Final_Status}.`,
     ERT: `Property Individual Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed. A telephonic attempt was also made and {Call_Remark}.
 
 ENTRY RESTRICTION DETAILS:
 {Name_of_Met_Person} {Met_Person_Confirmation_Text} the property existence at the given address. The property owner is {Property_Owner_Name}. Society board {Society_Name_Plate_Text}.
@@ -2302,11 +2302,44 @@ Hence the profile is marked as {Final_Status}.`,
       return `${name} is ${lc(ws)} at ${cn}.`;
     };
 
-    // Renders callRemark options as natural sentence fragments for UNTRACEABLE
-    // templates that stitch them after "We called <name>, but ...".
+    // Renders the dependent `callConfirmation` select (shown on mobile when
+    // Call Remark = "Pickup call & confirm") as a self-contained clause that
+    // reads correctly after BOTH "...made and <clause>" (door-locked) and
+    // "We called <name>, but <clause>" (untraceable). Mobile option strings
+    // are the contract — keep in sync with LegacyFormTemplateBuilders.ts.
+    const callConfirmationText = (raw: string): string => {
+      const v = (raw || '').trim().toLowerCase();
+      if (v.startsWith('address is shifted')) {
+        return 'the applicant informed that the address has been shifted';
+      }
+      if (v.startsWith('loan cancel')) {
+        return 'the applicant informed that the loan has been cancelled';
+      }
+      if (v.startsWith('already verification')) {
+        return 'the applicant informed that the verification has already been completed';
+      }
+      if (v.startsWith('hold for verification')) {
+        return 'the applicant requested to keep the verification on hold';
+      }
+      if (v.startsWith('requested to visit another address')) {
+        return 'the applicant requested us to visit another address';
+      }
+      if (v.startsWith('request to visit another day')) {
+        return 'the applicant requested us to visit on another day';
+      }
+      if (v.startsWith('currently not available')) {
+        return 'the applicant informed that they are currently not available';
+      }
+      // Pickup-confirm chosen but no/unknown detail.
+      return 'the applicant confirmed the details over the call';
+    };
+
+    // Renders callRemark options as natural sentence fragments for door-locked
+    // + UNTRACEABLE templates that stitch them after "...made and ..." or
+    // "We called <name>, but ...".
     // Mobile options: "Did Not Pick Up Call" / "Number is Switch Off" /
-    // "Number is Unreachable" / "Refused to Guide Address".
-    const callRemarkText = (raw: string): string => {
+    // "Number is Unreachable" / "Refused to Guide Address" / "Pickup call & confirm".
+    const callRemarkText = (raw: string, confirmation?: string): string => {
       const v = (raw || '').trim().toLowerCase();
       if (!v) {
         return 'the call did not go through';
@@ -2322,6 +2355,11 @@ Hence the profile is marked as {Final_Status}.`,
       }
       if (v.startsWith('refused to guide')) {
         return 'the customer refused to guide us to the address';
+      }
+      // "Pickup call & confirm" — the call was answered; narrate the chosen
+      // confirmation detail from the dependent callConfirmation field.
+      if (v.startsWith('pickup call')) {
+        return callConfirmationText(confirmation || '');
       }
       return lc(raw);
     };
@@ -2660,7 +2698,8 @@ Hence the profile is marked as {Final_Status}.`,
       // Call-related fields for Untraceable template
       Call_Remark:
         callRemarkText(
-          safeGet(formData, 'callRemark') || safeGet(formData, 'phoneCallRemark') || ''
+          safeGet(formData, 'callRemark') || safeGet(formData, 'phoneCallRemark') || '',
+          safeGet(formData, 'callConfirmation')
         ) || 'the call did not go through',
 
       // NSP-specific fields
