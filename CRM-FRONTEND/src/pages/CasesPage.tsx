@@ -390,6 +390,16 @@ export const CasesPage: React.FC = () => {
         <Card className="border-destructive bg-destructive/10">
           <CardContent className="py-6 text-center text-destructive">
             Failed to load cases. Please try again.
+            <div className="mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleRefresh()}
+                className="border-destructive text-destructive hover:bg-destructive/20"
+              >
+                Retry
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (

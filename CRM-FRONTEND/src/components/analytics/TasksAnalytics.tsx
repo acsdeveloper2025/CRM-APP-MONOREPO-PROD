@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -88,6 +89,7 @@ export const TasksAnalytics: React.FC = () => {
     data: statsRes,
     isLoading,
     error,
+    refetch,
   } = useQuery<ApiResponse<TasksStatsResponse>>({
     queryKey: ['verification-tasks-stats', timeRange],
     queryFn: async () => {
@@ -175,6 +177,9 @@ export const TasksAnalytics: React.FC = () => {
           <p className="text-muted-foreground text-center">
             There was an error loading the task analytics. Please try again later.
           </p>
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
+            Retry
+          </Button>
         </CardContent>
       </Card>
     );

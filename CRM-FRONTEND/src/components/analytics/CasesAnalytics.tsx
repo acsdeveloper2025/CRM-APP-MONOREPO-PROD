@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -59,6 +60,7 @@ export const CasesAnalytics: React.FC = () => {
     data: analyticsData,
     isLoading,
     error,
+    refetch,
   } = useCaseAnalytics({
     dateFrom: getDateFromRange(timeRange),
     dateTo: new Date().toISOString().split('T')[0],
@@ -134,6 +136,9 @@ export const CasesAnalytics: React.FC = () => {
           <p className="text-muted-foreground text-center">
             There was an error loading the case analytics. Please try again later.
           </p>
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
+            Retry
+          </Button>
         </CardContent>
       </Card>
     );

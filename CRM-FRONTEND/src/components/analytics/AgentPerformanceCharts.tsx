@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -43,7 +44,11 @@ const getDateFromRange = (range: string): string => {
 export const AgentPerformanceCharts: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
 
-  const { data: performanceData, error } = useAgentPerformance({
+  const {
+    data: performanceData,
+    error,
+    refetch,
+  } = useAgentPerformance({
     dateFrom: getDateFromRange(timeRange),
     dateTo: new Date().toISOString().split('T')[0],
   });
@@ -91,6 +96,9 @@ export const AgentPerformanceCharts: React.FC = () => {
             <p className="text-muted-foreground text-center">
               There was an error loading agent performance data. Please try again later.
             </p>
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
+              Retry
+            </Button>
           </CardContent>
         </Card>
       </div>
