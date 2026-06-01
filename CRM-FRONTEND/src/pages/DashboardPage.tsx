@@ -59,6 +59,8 @@ export const DashboardPage: React.FC = () => {
     activitiesData: actData,
     activitiesLoading,
     isLoading,
+    error,
+    refetch,
   } = useDashboardKPI();
 
   const [isExporting, setIsExporting] = React.useState(false);
@@ -214,6 +216,25 @@ export const DashboardPage: React.FC = () => {
           <span>{isExporting ? 'Exporting…' : 'Export Report'}</span>
         </Button>
       </div>
+
+      {/* Error banner — distinguishes outage from a genuine zero-state */}
+      {error && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load dashboard data. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-5">
