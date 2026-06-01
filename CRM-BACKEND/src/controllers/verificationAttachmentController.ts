@@ -464,6 +464,10 @@ export class VerificationAttachmentController {
       );
 
       const uploadedAttachments: Record<string, unknown>[] = [];
+      // P0a (ERROR_HANDLING_AUDIT 2026-06-01): track per-file failures so a
+      // partial upload is reported to the caller instead of being silently
+      // dropped (and the original deleted).
+      const failedFiles: { filename: string; reason: string }[] = [];
 
       // Process each uploaded file
       for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
@@ -472,20 +476,33 @@ export class VerificationAttachmentController {
           let thumbnailPath: string | null = null;
           const fileOperationId = operationId ? `${operationId}:${fileIndex}` : null;
 
-          // Generate thumbnail for images
+          // Generate thumbnail for images. P0a: thumbnail generation must NOT
+          // abort the upload — a valid-but-odd image that sharp cannot process
+          // would otherwise throw into the outer catch, which DELETES the
+          // original evidence photo (legal evidence, IT Act §65B). Degrade to
+          // full-res-only (thumbnailPath = null; serve path falls back to
+          // full-res when no thumbnail is stored) and keep the photo.
           if (file.mimetype.startsWith('image/')) {
-            const thumbnailDir = path.join(path.dirname(file.path), 'thumbnails');
-            await fs.mkdir(thumbnailDir, { recursive: true });
+            try {
+              const thumbnailDir = path.join(path.dirname(file.path), 'thumbnails');
+              await fs.mkdir(thumbnailDir, { recursive: true });
 
-            thumbnailPath = path.join(thumbnailDir, `thumb_${path.basename(file.path)}`);
+              thumbnailPath = path.join(thumbnailDir, `thumb_${path.basename(file.path)}`);
 
-            await sharp(file.path)
-              .resize(200, 200, {
-                fit: 'inside',
-                withoutEnlargement: true,
-              })
-              .jpeg({ quality: 80 })
-              .toFile(thumbnailPath);
+              await sharp(file.path)
+                .resize(200, 200, {
+                  fit: 'inside',
+                  withoutEnlargement: true,
+                })
+                .jpeg({ quality: 80 })
+                .toFile(thumbnailPath);
+            } catch (thumbError) {
+              logger.error(
+                `Thumbnail generation failed for ${file.originalname}; storing full-res only:`,
+                thumbError
+              );
+              thumbnailPath = null;
+            }
           }
 
           // Save to verification_attachments table.
@@ -612,7 +629,15 @@ export class VerificationAttachmentController {
           }
         } catch (fileError) {
           logger.error(`Error processing file ${file.originalname}:`, fileError);
-          // Clean up file on error
+          // P0a: record the failure so the response tells the caller this photo
+          // did NOT persist (was previously a silent drop). Generic reason only —
+          // never echo raw error.message to the client.
+          failedFiles.push({
+            filename: file.originalname,
+            reason: 'Photo could not be processed on the server',
+          });
+          // Clean up the un-persisted temp file: bytes never reached storage/DB,
+          // and the device still holds its copy to retry on the reported failure.
           try {
             await fs.unlink(file.path);
           } catch (unlinkError) {
@@ -638,11 +663,21 @@ export class VerificationAttachmentController {
         userAgent: req.get('User-Agent'),
       });
 
+      // P0a: success only if at least one photo actually persisted; always
+      // report the failed[] set so the caller (device/web) can retry and never
+      // believes a short/empty upload succeeded.
+      const anyUploaded = uploadedAttachments.length > 0;
       res.json({
-        success: true,
-        message: `${uploadedAttachments.length} verification images uploaded successfully`,
+        success: anyUploaded,
+        message:
+          failedFiles.length > 0
+            ? `${uploadedAttachments.length} of ${
+                uploadedAttachments.length + failedFiles.length
+              } verification images uploaded`
+            : `${uploadedAttachments.length} verification images uploaded successfully`,
         data: {
           attachments: uploadedAttachments,
+          failed: failedFiles,
           caseId: targetCaseId,
           verificationType: verificationTypeToUse,
           submissionId,
