@@ -604,15 +604,21 @@ export class MobileFormController {
       return [];
     }
 
-    // attachment IDs from mobile are UUIDs but may also be stored as submissionId or filename references.
-    // Query by submissionId (UUID) which is what the mobile sends, falling back to string match.
+    // Mobile uploads photos via the separate /attachments endpoint, which
+    // returns the numeric verification_attachments.id (as `attachmentId`) and
+    // stores rows with submission_id NULL — so the form payload's attachmentIds
+    // are those numeric ids. Match on id as well as the legacy submission_id /
+    // filename references. (Completion no longer depends on this resolver — see
+    // rejectIfPhotosUnderStored — it only enriches submission_data, so a miss
+    // is cosmetic, but matching keeps verificationImages[] populated.)
     const attachmentResult = await query(
       // NEW-CRIT-1 (AUDIT 2026-05-17): soft-deleted attachments must not
       // surface in form-data responses — DPDP erasure intent.
       `SELECT id, filename, file_path, thumbnail_path, created_at, photo_type, geo_location
        FROM verification_attachments
        WHERE (submission_id = ANY($1::text[])
-              OR filename = ANY($1::text[]))
+              OR filename = ANY($1::text[])
+              OR id::text = ANY($1::text[]))
          AND deleted_at IS NULL
        ORDER BY created_at ASC`,
       [attachmentIds]

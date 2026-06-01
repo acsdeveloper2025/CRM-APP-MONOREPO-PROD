@@ -17,11 +17,13 @@ import { logger } from '@/utils/logger';
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 const ONE_MINUTE_MS = 60 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
 const INITIAL_DELAY_MS = 30 * 1000; // wait 30s after boot for DB+pool to settle
 
 let maintenanceInterval: ReturnType<typeof setInterval> | null = null;
 let kpiRefreshInterval: ReturnType<typeof setInterval> | null = null;
 let latestLocationInterval: ReturnType<typeof setInterval> | null = null;
+let stuckCompletionMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
 const tasks: Array<{ name: string; sql: string }> = [
   {
@@ -174,6 +176,42 @@ const reconcileLatestLocation = async (windowMinutes?: number): Promise<void> =>
   }
 };
 
+// Safety-net monitor (2026-06-01): after the photo-persist gate regression
+// (project_mobile_form_submit_photo_gate_2026_06_01) silently blocked field
+// completions for ~4h, watch for the DB fingerprint of a broken submit path —
+// tasks IN_PROGRESS for >3h that already have >=5 stored photos but no
+// form_submissions row. A sustained / climbing count is the signal; isolated
+// rows are normal (agent paused mid-visit), so this logs at WARN — log-based
+// alerting can fire on a rising count without crying wolf.
+const monitorStuckCompletions = async (): Promise<void> => {
+  try {
+    const result = await query<{ task_number: string }>(
+      `SELECT vt.task_number
+         FROM verification_tasks vt
+        WHERE vt.status = 'IN_PROGRESS'
+          AND vt.updated_at < now() - interval '3 hours'
+          AND (
+            SELECT count(*) FROM verification_attachments va
+             WHERE va.verification_task_id = vt.id AND va.deleted_at IS NULL
+          ) >= 5
+          AND NOT EXISTS (
+            SELECT 1 FROM form_submissions fs WHERE fs.verification_task_id = vt.id
+          )
+        ORDER BY vt.updated_at
+        LIMIT 50`
+    );
+    if (result.rows.length > 0) {
+      logger.warn('db-maintenance stuck_completions_detected', {
+        count: result.rows.length,
+        sample: result.rows.slice(0, 20).map(r => r.task_number),
+        hint: 'IN_PROGRESS >3h with >=5 stored photos but no form_submission — possible mobile submit-path breakage',
+      });
+    }
+  } catch (err) {
+    logger.warn('db-maintenance monitor_stuck_completions failed', { error: String(err) });
+  }
+};
+
 export const startDbMaintenance = (): void => {
   if (maintenanceInterval) {
     clearInterval(maintenanceInterval);
@@ -184,12 +222,16 @@ export const startDbMaintenance = (): void => {
   if (latestLocationInterval) {
     clearInterval(latestLocationInterval);
   }
+  if (stuckCompletionMonitorInterval) {
+    clearInterval(stuckCompletionMonitorInterval);
+  }
   setTimeout(() => {
     void runOnce();
     void refreshKpiMatView();
     // Full-scan backfill once at boot so the projection is populated before
     // the first roster read; the interval below keeps it fresh with a window.
     void reconcileLatestLocation();
+    void monitorStuckCompletions();
   }, INITIAL_DELAY_MS);
   maintenanceInterval = setInterval(() => {
     void runOnce();
@@ -200,10 +242,14 @@ export const startDbMaintenance = (): void => {
   latestLocationInterval = setInterval(() => {
     void reconcileLatestLocation(20);
   }, ONE_MINUTE_MS);
+  stuckCompletionMonitorInterval = setInterval(() => {
+    void monitorStuckCompletions();
+  }, ONE_HOUR_MS);
   logger.info('db-maintenance scheduled', {
     purgeIntervalMs: TWENTY_FOUR_HOURS_MS,
     kpiRefreshIntervalMs: FIVE_MINUTES_MS,
     latestLocationReconcileIntervalMs: ONE_MINUTE_MS,
+    stuckCompletionMonitorIntervalMs: ONE_HOUR_MS,
   });
 };
 
@@ -219,5 +265,9 @@ export const stopDbMaintenance = (): void => {
   if (latestLocationInterval) {
     clearInterval(latestLocationInterval);
     latestLocationInterval = null;
+  }
+  if (stuckCompletionMonitorInterval) {
+    clearInterval(stuckCompletionMonitorInterval);
+    stuckCompletionMonitorInterval = null;
   }
 };
