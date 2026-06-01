@@ -36,13 +36,24 @@ psql "$TEST_URL" -q -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 echo "Loading schema + seed dump (errors for the materialized view / late objects are expected) ..."
 psql "$TEST_URL" -q -v ON_ERROR_STOP=0 -f "$DUMP" > /tmp/acs_db_test_load.log 2>&1 || true
 
-# The dashboard materialized views are created by migrations, not the dump
-# (the dump's REFRESH statements fail because the CREATE never lands in load
-# order). Apply them so dashboard/analytics endpoints work in tests.
-echo "Applying dashboard materialized-view migrations ..."
-for MV in 2026-05-27_p5_dashboard_kpi_mat_view.sql 2026-05-28_p3_1_mv_dashboard_tat.sql; do
-  if [ -f "$BE_DIR/migrations/$MV" ]; then
-    psql "$TEST_URL" -q -v ON_ERROR_STOP=0 -f "$BE_DIR/migrations/$MV" >> /tmp/acs_db_test_load.log 2>&1 || true
+# Apply post-dump migrations so the test schema matches live `acs_db`.
+# The dump (acs_db_final_version.sql) is a point-in-time snapshot; any column
+# or object added by a migration AFTER the dump date is absent from a fresh
+# load and must be re-applied here, or integration tests drift from live.
+# Two classes:
+#   1. dashboard materialized views — the dump's REFRESH statements fail
+#      because the CREATE never lands in load order, so re-create them.
+#   2. post-dump column migrations — e.g. verification_reports.call_confirmation
+#      (shipped 2026-06-01, after the dump). All are idempotent
+#      (CREATE ... IF NOT EXISTS / ADD COLUMN IF NOT EXISTS), so re-running is safe.
+# When a new schema-changing migration ships after the dump, append it here.
+echo "Applying post-dump migrations (mat-views + later column additions) ..."
+for MIG in \
+  2026-05-27_p5_dashboard_kpi_mat_view.sql \
+  2026-05-28_p3_1_mv_dashboard_tat.sql \
+  2026-06-01_verification_reports_call_confirmation.sql; do
+  if [ -f "$BE_DIR/migrations/$MIG" ]; then
+    psql "$TEST_URL" -q -v ON_ERROR_STOP=0 -f "$BE_DIR/migrations/$MIG" >> /tmp/acs_db_test_load.log 2>&1 || true
   fi
 done
 
