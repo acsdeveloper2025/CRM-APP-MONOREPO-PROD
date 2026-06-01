@@ -149,9 +149,13 @@ class VerificationImagesService {
 
         return blobUrl;
       } catch (error) {
-        logger.error('Error fetching image:', error);
-        const baseUrl = apiService.getRootUrl();
-        return `${baseUrl}${imageUrl}`;
+        // ERROR_HANDLING_AUDIT #14: the scoped /serve route failed (file missing
+        // on disk → 404, or access denied). The raw /uploads/verification URL is
+        // IDOR-blocked (returns 403), so falling back to it only produces a second
+        // failed request + console noise. Return '' so the UI renders an
+        // "Image unavailable" placeholder instead of a broken image.
+        logger.error('Error fetching verification image:', error);
+        return '';
       }
     }
 
@@ -193,9 +197,11 @@ class VerificationImagesService {
 
         return blobUrl;
       } catch (error) {
-        logger.error('Error fetching thumbnail:', error);
-        const baseUrl = apiService.getRootUrl();
-        return `${baseUrl}${thumbnailUrl}`;
+        // ERROR_HANDLING_AUDIT #14: scoped /thumbnail failed; raw /uploads URL is
+        // IDOR-blocked (403). Return '' → "Image unavailable" placeholder rather
+        // than a doomed second request + broken image.
+        logger.error('Error fetching verification thumbnail:', error);
+        return '';
       }
     }
 

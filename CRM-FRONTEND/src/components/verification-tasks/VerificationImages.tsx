@@ -10,7 +10,15 @@ import {
   useVerificationImagesBySubmission,
 } from '@/hooks/useVerificationImages';
 import { verificationImagesService, type VerificationImage } from '@/services/verificationImages';
-import { Camera, MapPin, Download, Eye, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import {
+  Camera,
+  MapPin,
+  Download,
+  Eye,
+  Image as ImageIcon,
+  ImageOff,
+  ExternalLink,
+} from 'lucide-react';
 import { format } from 'date-fns';
 // 2026-05-05 (bug 60): swapped from `html2canvas` (v1.4.1) to
 // `html2canvas-pro` — the original lib chokes on Tailwind v4's
@@ -515,6 +523,12 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
   const finalUrl = thumbnailUrl ? thumbUrl : displayUrl;
   const isLoading = thumbnailUrl ? thumbLoading : imageLoading;
 
+  // ERROR_HANDLING_AUDIT #14: show an "Image unavailable" placeholder when the
+  // file can't be served (service returns '' for a missing/forbidden file) or
+  // the <img> errors at load time — instead of a broken-image glyph.
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [finalUrl]);
+
   const handleLoad = onAspectRatio
     ? (e: React.SyntheticEvent<HTMLImageElement>) => {
         const { naturalWidth, naturalHeight } = e.currentTarget;
@@ -528,6 +542,17 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
     return (
       <div className={`flex items-center justify-center ${className || 'w-full h-full'}`}>
         <LoadingSpinner size="sm" />
+      </div>
+    );
+  }
+
+  if (!finalUrl || failed) {
+    return (
+      <div
+        className={`flex flex-col items-center justify-center gap-1 bg-muted text-muted-foreground ${className || 'w-full h-full'}`}
+      >
+        <ImageOff className="h-6 w-6" aria-hidden="true" />
+        <span className="text-[10px] font-medium">Image unavailable</span>
       </div>
     );
   }
@@ -546,6 +571,7 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
           loading="lazy"
           decoding="async"
           onLoad={handleLoad}
+          onError={() => setFailed(true)}
           className={className}
         />
       </button>
@@ -559,6 +585,7 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
       loading="lazy"
       decoding="async"
       onLoad={handleLoad}
+      onError={() => setFailed(true)}
       className={className}
     />
   );
@@ -597,6 +624,9 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   onClose,
 }) => {
   const { url: displayUrl, loading } = useImageUrl(imageUrl, imageId);
+  // ERROR_HANDLING_AUDIT #14: placeholder when the full image can't be served.
+  const [imgFailed, setImgFailed] = useState(false);
+  useEffect(() => setImgFailed(false), [displayUrl]);
   const rawGeo = image?.geoLocation;
   const location =
     rawGeo && typeof rawGeo === 'object' && typeof rawGeo.latitude === 'number' ? rawGeo : null;
@@ -668,13 +698,21 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
               className="bg-card rounded-lg overflow-hidden mx-auto"
               style={{ maxWidth: '100%' }}
             >
-              <img
-                src={displayUrl}
-                alt={imageName}
-                loading="lazy"
-                decoding="async"
-                className="block w-full max-h-[70vh] object-contain"
-              />
+              {!displayUrl || imgFailed ? (
+                <div className="flex flex-col items-center justify-center gap-2 w-full h-96 bg-muted text-muted-foreground">
+                  <ImageOff className="h-10 w-10" aria-hidden="true" />
+                  <span className="text-sm font-medium">Image unavailable</span>
+                </div>
+              ) : (
+                <img
+                  src={displayUrl}
+                  alt={imageName}
+                  loading="lazy"
+                  decoding="async"
+                  onError={() => setImgFailed(true)}
+                  className="block w-full max-h-[70vh] object-contain"
+                />
+              )}
               {image && (
                 <MetadataOverlay
                   attachmentId={image.id}
