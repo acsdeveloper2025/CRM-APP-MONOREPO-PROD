@@ -31,7 +31,8 @@ export type NotificationType =
   | 'TASK_COMPLETED'
   | 'SYSTEM_MAINTENANCE'
   | 'APP_UPDATE'
-  | 'EMERGENCY_ALERT';
+  | 'EMERGENCY_ALERT'
+  | 'KYC_ASSIGNED';
 
 export type NotificationPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
@@ -574,6 +575,7 @@ export class NotificationService {
   ): boolean {
     switch (type) {
       case 'CASE_ASSIGNED':
+      case 'KYC_ASSIGNED':
         return preferences.caseAssignmentEnabled;
       case 'CASE_REASSIGNED':
       case 'CASE_REMOVED':
@@ -601,6 +603,7 @@ export class NotificationService {
   ): boolean {
     switch (type) {
       case 'CASE_ASSIGNED':
+      case 'KYC_ASSIGNED':
         return preferences.caseAssignmentWebsocket;
       case 'CASE_REASSIGNED':
       case 'CASE_REMOVED':

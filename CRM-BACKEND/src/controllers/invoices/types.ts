@@ -127,7 +127,7 @@ export type CreateInvoiceBody = {
 };
 
 export type InvoiceKycTaskCandidateRow = {
-  id: string;
+  id: string; // verification_task_id (kept for linkedTasks.taskId)
   caseId: string;
   taskTitle: string | null;
   estimatedAmount: string | null;
@@ -137,4 +137,8 @@ export type InvoiceKycTaskCandidateRow = {
   documentTypeCode: string | null;
   clientId: number;
   productId: number;
+  // P4 (2026-06-02): billing is now per reverification CYCLE, not per task.
+  cycleId: string;
+  cycleNumber: number;
+  rateAmount: string | null;
 };

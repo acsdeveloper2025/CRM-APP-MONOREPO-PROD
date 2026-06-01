@@ -143,6 +143,17 @@ export class MobileAuthController {
         permissionCodes: rbacPermissionCodes,
       } as unknown as AuthenticatedRequest['user'];
 
+      // P7 (2026-06-02): the read-only KYC Verifier is a WEB-ONLY role — it
+      // performs no field execution and must never obtain a mobile token.
+      // Block unless the user is also a genuine field-execution actor.
+      if (rbacRoles.includes('KYC_VERIFIER') && !isFieldExecutionActor(authProfile)) {
+        return res.status(403).json({
+          success: false,
+          message: 'KYC Verifier is a web-only role. Please use the web application.',
+          error: { code: 'KYC_VERIFIER_WEB_ONLY' },
+        });
+      }
+
       // Generate tokens (simplified - no device ID).
       // F-B3.4: embed tokenVersion so password change / logout-all
       // bumps invalidate this access token immediately.

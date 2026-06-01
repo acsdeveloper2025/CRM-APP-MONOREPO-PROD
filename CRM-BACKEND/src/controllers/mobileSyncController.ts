@@ -547,6 +547,10 @@ export class MobileSyncController {
            $${userIdParamIndex}::uuid IS NULL
            OR vt.assigned_to = $${userIdParamIndex}::uuid
          )
+           -- P7 (2026-06-02): never sync KYC attachments to a device. Mirrors
+           -- the task-delta exclusion (downloadSync) — defense-in-depth against
+           -- a mis-routed KYC assignment surfacing evidence on mobile.
+           AND (vt.task_type IS NULL OR vt.task_type != 'KYC')
            AND COALESCE(va.updated_at, va.created_at) > $${syncTimestampParamIndex}
          ORDER BY COALESCE(va.updated_at, va.created_at) ASC, va.id ASC
          LIMIT $${limitParamIndex}

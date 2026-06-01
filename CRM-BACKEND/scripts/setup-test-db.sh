@@ -51,7 +51,11 @@ echo "Applying post-dump migrations (mat-views + later column additions) ..."
 for MIG in \
   2026-05-27_p5_dashboard_kpi_mat_view.sql \
   2026-05-28_p3_1_mv_dashboard_tat.sql \
-  2026-06-01_verification_reports_call_confirmation.sql; do
+  2026-06-01_verification_reports_call_confirmation.sql \
+  2026-06-02_kyc_verifier_p0_rbac.sql \
+  2026-06-02_kyc_verifier_p1_cycles.sql \
+  2026-06-02_kyc_verifier_p2_notifications.sql \
+  2026-06-02_kyc_verifier_p4_billing.sql; do
   if [ -f "$BE_DIR/migrations/$MIG" ]; then
     psql "$TEST_URL" -q -v ON_ERROR_STOP=0 -f "$BE_DIR/migrations/$MIG" >> /tmp/acs_db_test_load.log 2>&1 || true
   fi

@@ -12,6 +12,28 @@ const kycKeys = {
     [...kycKeys.all, 'tasks', query, scope] as const,
   task: (id: string) => [...kycKeys.all, 'task', id] as const,
   caseTasks: (caseId: string) => [...kycKeys.all, 'case', caseId] as const,
+  cycles: (id: string) => [...kycKeys.all, 'cycles', id] as const,
+  mis: () => [...kycKeys.all, 'mis'] as const,
+};
+
+// P3/P6 (2026-06-02): per-cycle reverification history for a KYC task.
+export const useKYCCycles = (taskId: string, enabled = true) => {
+  return useQuery({
+    queryKey: kycKeys.cycles(taskId),
+    queryFn: () => kycService.getCycles(taskId),
+    enabled: enabled && !!taskId,
+    select: (res) => res.data || [],
+  });
+};
+
+// P5/P6 (2026-06-02): KYC MIS metrics over the cycle table.
+export const useKYCMis = (enabled = true) => {
+  return useQuery({
+    queryKey: kycKeys.mis(),
+    queryFn: () => kycService.getMis(),
+    enabled,
+    select: (res) => res.data,
+  });
 };
 
 /**
@@ -136,6 +158,23 @@ export const useRecheckKYCTask = () => {
     mutationFn: (taskId: string) => kycService.recheckTask(taskId),
     invalidateKeys: [kycKeys.all],
     errorContext: 'KYC Recheck',
+  });
+};
+
+// P3 (2026-06-02): open a new billable reverification cycle (non-destructive).
+export const useReverifyKYCTask = () => {
+  return useMutationWithInvalidation({
+    mutationFn: ({
+      taskId,
+      assignedTo,
+      reason,
+    }: {
+      taskId: string;
+      assignedTo?: string;
+      reason?: string;
+    }) => kycService.reverifyTask(taskId, { assignedTo, reason }),
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Reverify',
   });
 };
 

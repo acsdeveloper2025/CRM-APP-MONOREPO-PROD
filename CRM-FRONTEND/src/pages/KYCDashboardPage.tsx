@@ -45,7 +45,10 @@ import {
   useStartKYCTask,
   useRevokeKYCTask,
   useRecheckKYCTask,
+  useReverifyKYCTask,
+  useKYCMis,
 } from '@/hooks/useKYC';
+import { usePermission } from '@/hooks/usePermissions';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -135,6 +138,21 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const { mutateAsync: startKyc, isPending: isStarting } = useStartKYCTask();
   const { mutateAsync: revokeKyc, isPending: isRevoking } = useRevokeKYCTask();
   const { mutateAsync: recheckKyc, isPending: isRechecking } = useRecheckKYCTask();
+  const { mutateAsync: reverifyKyc, isPending: isReverifying } = useReverifyKYCTask();
+  // KYC Verifier read-only model (2026-06-02): action controls are permission-
+  // gated. The read-only verifier (none of these) sees only View + navigation.
+  const canComplete = usePermission('kyc.complete');
+  const canReverifyPerm = usePermission('kyc.reverify');
+  const canRevokePerm = usePermission('kyc.revoke');
+  const canRecheckPerm = usePermission('kyc.recheck');
+  const canAssignPerm =
+    usePermission('kyc.assign') ||
+    usePermission('case.create') ||
+    usePermission('case.assign') ||
+    usePermission('case.reassign');
+  // P5/P6: KYC MIS (cycle-based) — only for report/analytics viewers.
+  const canViewMis = usePermission('report.generate') || usePermission('analytics.view');
+  const { data: mis } = useKYCMis(canViewMis);
   const [revokeTask, setRevokeTask] = useState<{ id: string; taskNumber: string } | null>(null);
   const [revokeReasonCode, setRevokeReasonCode] = useState<string>('');
   const [revokeOtherReason, setRevokeOtherReason] = useState<string>('');
@@ -444,6 +462,34 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         </Card>
       </div>
 
+      {/* P5/P6 (2026-06-02): KYC MIS — cycle-based metrics incl. reverification
+          + billable/revenue counts. Sourced from kyc_verification_cycles. */}
+      {canViewMis && mis && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">KYC MIS</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 text-center">
+              {[
+                { label: 'Total Assigned', value: mis.totalAssigned },
+                { label: 'Pending w/ Verifier', value: mis.pendingWithVerifier },
+                { label: 'Report Awaited', value: mis.reportAwaited },
+                { label: 'Completed', value: mis.completed },
+                { label: 'Reverifications', value: mis.reverificationCount },
+                { label: 'Billable', value: mis.billableCount },
+                { label: 'Revenue (₹)', value: mis.eligibleRevenue },
+              ].map((m) => (
+                <div key={m.label}>
+                  <p className="text-2xl font-bold">{m.value}</p>
+                  <p className="text-xs text-muted-foreground">{m.label}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <UnifiedSearchFilterLayout
         searchValue={searchValue}
         onSearchChange={setSearchValue}
@@ -566,18 +612,26 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
               <TableBody>
                 {tasks.map((task) => {
                   const status = task.verificationStatus;
+                  // Each control requires BOTH a valid state AND the matching
+                  // permission. The read-only KYC Verifier holds none of these.
                   const canStartVerify =
-                    status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS';
+                    canComplete &&
+                    (status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS');
                   const canRevoke =
-                    status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS';
+                    canRevokePerm &&
+                    (status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS');
                   // Field-task parity: Assign on PENDING (first-time, no assignee yet),
                   // Reassign on REVOKED (after revoke). ASSIGNED/IN_PROGRESS users
                   // MUST revoke first so the task leaves the current verifier's tray
                   // cleanly — no silent yank.
                   const canAssign =
-                    (status === 'PENDING' && !task.assignedTo) || status === 'REVOKED';
+                    canAssignPerm &&
+                    ((status === 'PENDING' && !task.assignedTo) || status === 'REVOKED');
                   // F9.1: COMPLETED rows can also be rechecked (re-open a verified doc).
-                  const canRecheck = status === 'REVOKED' || status === 'COMPLETED';
+                  const canRecheck =
+                    canRecheckPerm && (status === 'REVOKED' || status === 'COMPLETED');
+                  // P3: non-destructive reverification opens a new billable cycle.
+                  const canReverify = canReverifyPerm && status === 'COMPLETED';
                   const isCompleted = status === 'COMPLETED';
                   return (
                     <TableRow key={task.id} className="hover:bg-muted">
@@ -700,6 +754,25 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                             >
                               <RefreshCw className="h-4 w-4 mr-1" />
                               Recheck
+                            </Button>
+                          )}
+                          {canReverify && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={isReverifying}
+                              onClick={async () => {
+                                try {
+                                  await reverifyKyc({ taskId: task.id });
+                                  toast.success('Reverification cycle opened');
+                                } catch {
+                                  toast.error('Failed to open reverification cycle');
+                                }
+                              }}
+                              title="Open a new billable reverification cycle (history preserved)"
+                            >
+                              <RefreshCw className="h-4 w-4 mr-1" />
+                              Reverify
                             </Button>
                           )}
                         </div>

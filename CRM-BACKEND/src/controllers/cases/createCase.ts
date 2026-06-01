@@ -890,6 +890,18 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
             rateAmount,
           ]
         );
+
+        // KYC reverification CYCLE 1 (2026-06-02): append-only history + the
+        // billing/MIS source of truth. Each reverification adds a new cycle;
+        // cycle 1 is born here with the case. Frozen rate snapshot mirrors the
+        // task's estimated_amount.
+        await client.query(
+          `INSERT INTO kyc_verification_cycles
+             (verification_task_id, case_id, cycle_number, assigned_verifier_id, assigned_by, assigned_at, status, rate_amount, billable, billed)
+           VALUES ($1, $2, 1, $3, $4, NOW(), 'KYC_ASSIGNED', $5, true, false)
+           ON CONFLICT (verification_task_id, cycle_number) DO NOTHING`,
+          [kycTaskId, newCase.id, doc.assignedTo, userId, rateAmount]
+        );
       }
 
       logger.info(

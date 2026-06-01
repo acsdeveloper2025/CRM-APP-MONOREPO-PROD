@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { apiService } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
+import { usePermission } from '@/hooks/usePermissions';
 
 const STATUS_CONFIG: Record<string, { color: string; icon: typeof CheckCircle }> = {
   PENDING: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: AlertTriangle },
@@ -54,6 +55,11 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
   const { mutateAsync: verifyDoc, isPending: isVerifying } = useVerifyKYCDocument();
   const { mutateAsync: uploadDoc } = useUploadKYCDocument();
   const { mutateAsync: assignDoc } = useAssignKYCTask();
+  // KYC Verifier read-only model (2026-06-02): findings entry / upload / assign
+  // require kyc.complete (Backend User). The read-only verifier sees view only,
+  // even though CaseDetailPage passes readonly=false.
+  const canComplete = usePermission('kyc.complete');
+  const effectiveReadonly = readonly || !canComplete;
 
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
   const [remarks, setRemarks] = useState<Record<string, string>>({});
@@ -75,7 +81,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
       return res.data as Array<{ id: string; name: string; employeeId: string }>;
     },
     staleTime: 5 * 60 * 1000,
-    enabled: !readonly,
+    enabled: !effectiveReadonly,
   });
   const users = usersData || [];
 
@@ -278,7 +284,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                         </a>
                       </Button>
                     </div>
-                  ) : isPending && !readonly ? (
+                  ) : isPending && !effectiveReadonly ? (
                     <label className="flex items-center gap-2 p-3 bg-card border border-dashed rounded cursor-pointer hover:bg-muted transition-colors text-sm text-muted-foreground">
                       <Upload className="h-4 w-4" />
                       <span>Upload document</span>
@@ -300,7 +306,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                   )}
 
                   {/* Assignment */}
-                  {isPending && !readonly && (
+                  {isPending && !effectiveReadonly && (
                     <div className="flex items-center gap-2">
                       <UserPlus className="h-4 w-4 text-muted-foreground shrink-0" />
                       <Select
@@ -356,7 +362,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                   )}
 
                   {/* Verification actions (only for PENDING, hidden in readonly mode) */}
-                  {isPending && !readonly && (
+                  {isPending && !effectiveReadonly && (
                     <div className="space-y-3 pt-2 border-t">
                       <div>
                         <Label className="text-xs">Remarks (Optional)</Label>

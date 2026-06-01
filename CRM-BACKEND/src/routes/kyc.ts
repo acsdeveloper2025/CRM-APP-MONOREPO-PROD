@@ -19,6 +19,9 @@ import {
   startKYCTask,
   revokeKYCTask,
   recheckKYCTask,
+  reverifyKYCTask,
+  listKycCycles,
+  getKycMis,
 } from '@/controllers/kycVerificationController';
 import {
   EnterpriseCache,
@@ -104,10 +107,14 @@ router.get('/cases/:caseId/tasks', authorizeAny(['kyc.view', 'case.view']), getK
 // Single KYC task detail
 router.get('/tasks/:taskId', authorize('kyc.view'), getKYCTaskDetail);
 
-// Verify document (Pass/Fail/Refer)
+// Verify document (Pass/Fail/Refer) — findings entry + cycle completion.
+// KYC Verifier read-only model (2026-06-02): the executor is the Backend User,
+// NOT the assigned verifier. Gate on kyc.complete (held by BACKEND_USER /
+// SUPER_ADMIN / MANAGER), so the read-only KYC_VERIFIER (which lost kyc.verify)
+// can never complete a task.
 router.put(
   '/tasks/:taskId/verify',
-  authorize('kyc.verify'),
+  authorize('kyc.complete'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   verifyKYCDocument
 );
@@ -162,6 +169,21 @@ router.post(
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   recheckKYCTask
 );
+
+// P3 (2026-06-02): non-destructive reverification — opens a NEW billable cycle.
+router.post(
+  '/tasks/:taskId/reverify',
+  authorize('kyc.reverify'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
+  reverifyKYCTask
+);
+
+// P3/P6: per-cycle reverification history (read-only).
+router.get('/tasks/:taskId/cycles', authorizeAny(['kyc.view', 'case.view']), listKycCycles);
+
+// P5 (2026-06-02): KYC MIS metrics over the reverification-cycle table.
+// Gated on report.generate (Backend/Manager/Admin) — NOT held by the verifier.
+router.get('/mis', authorizeAny(['report.generate', 'analytics.view']), getKycMis);
 
 // Excel export
 router.get('/export', authorize('kyc.export'), exportKYCToExcel);

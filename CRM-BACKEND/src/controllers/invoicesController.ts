@@ -232,92 +232,96 @@ const loadCompletedUnbilledKycTasks = async (
   billingPeriodFrom?: string,
   billingPeriodTo?: string
 ): Promise<InvoiceKycTaskCandidateRow[]> => {
-  // C-2 + KYC billing (audit 2026-05-11): KYC tasks land in invoice_items
-  // with frozen pricing from verification_tasks.estimated_amount.
-  // KYC tasks don't have verification_type_id / pincode_id / area_id /
-  // rate_type_id — they're priced via kyc_rates(client, product,
-  // document_type) at case-create time and the snapshot is stored on the
-  // task row. We do NOT re-resolve from kyc_rates here.
+  // P4 (2026-06-02): KYC billing is now per reverification CYCLE. Each
+  // kyc_verification_cycles row with status=KYC_COMPLETED, billable=true,
+  // billed=false is one billable line — so a Day-1 KYC and a Day-20
+  // reverification of the SAME task each bill exactly once. Pricing stays
+  // FROZEN (cycle.rate_amount, snapshotted from the task's estimated_amount);
+  // we never re-resolve from kyc_rates here.
   const conditions: string[] = [
-    `c.client_id = $1`,
-    `vt.status = 'COMPLETED'`,
-    `vt.task_type = 'KYC'`,
-    `iit.id IS NULL`,
+    `ca.client_id = $1`,
+    `cyc.status = 'KYC_COMPLETED'`,
+    `cyc.billable = true`,
+    `cyc.billed = false`,
   ];
   const params: Array<string | number | string[] | number[]> = [clientId];
 
   if (scope.restricted) {
     if (scope.assignedClientIds && scope.assignedClientIds.length > 0) {
       params.push(scope.assignedClientIds);
-      conditions.push(`c.client_id = ANY($${params.length}::int[])`);
+      conditions.push(`ca.client_id = ANY($${params.length}::int[])`);
     }
     if (scope.assignedProductIds && scope.assignedProductIds.length > 0) {
       params.push(scope.assignedProductIds);
-      conditions.push(`c.product_id = ANY($${params.length}::int[])`);
+      conditions.push(`ca.product_id = ANY($${params.length}::int[])`);
     }
   }
 
   if (productId) {
     params.push(productId);
-    conditions.push(`c.product_id = $${params.length}`);
+    conditions.push(`ca.product_id = $${params.length}`);
   }
 
   if (selectedTaskIds.length > 0) {
     params.push(selectedTaskIds);
-    conditions.push(`vt.id = ANY($${params.length}::uuid[])`);
+    conditions.push(`cyc.verification_task_id = ANY($${params.length}::uuid[])`);
   }
 
   if (selectedCaseIds.length > 0) {
     params.push(selectedCaseIds);
-    conditions.push(`vt.case_id = ANY($${params.length}::uuid[])`);
+    conditions.push(`cyc.case_id = ANY($${params.length}::uuid[])`);
   }
 
   if (billingPeriodFrom) {
     params.push(billingPeriodFrom);
-    conditions.push(`vt.completed_at >= $${params.length}`);
+    conditions.push(`cyc.completed_at >= $${params.length}`);
   }
 
   if (billingPeriodTo) {
     params.push(billingPeriodTo);
-    conditions.push(`vt.completed_at <= $${params.length}`);
+    conditions.push(`cyc.completed_at <= $${params.length}`);
   }
 
   const result = await client.query<InvoiceKycTaskCandidateRow>(
     `SELECT
-       vt.id,
-       vt.case_id,
+       cyc.verification_task_id as id,
+       cyc.case_id,
        vt.task_title,
        vt.estimated_amount::text,
        vt.actual_amount::text,
        kdv.document_type_id,
        dt.name as document_type_name,
        dt.code as document_type_code,
-       c.client_id as client_id,
-       c.product_id as product_id
-     FROM verification_tasks vt
-     JOIN cases c ON c.id = vt.case_id
+       ca.client_id as client_id,
+       ca.product_id as product_id,
+       cyc.id as cycle_id,
+       cyc.cycle_number,
+       cyc.rate_amount::text
+     FROM kyc_verification_cycles cyc
+     JOIN verification_tasks vt ON vt.id = cyc.verification_task_id
+     JOIN cases ca ON ca.id = cyc.case_id
      LEFT JOIN kyc_document_verifications kdv
-       ON kdv.verification_task_id = vt.id AND kdv.deleted_at IS NULL
+       ON kdv.verification_task_id = cyc.verification_task_id AND kdv.deleted_at IS NULL
      LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
-     LEFT JOIN invoice_item_tasks iit ON iit.verification_task_id = vt.id
      WHERE ${conditions.join(' AND ')}
-     ORDER BY COALESCE(vt.completed_at, vt.updated_at, vt.created_at) ASC`,
+     ORDER BY COALESCE(cyc.completed_at, cyc.created_at) ASC`,
     params
   );
 
   return result.rows;
 };
 
-// Resolve the billing amount for a KYC task. Fails LOUD on missing snapshot
-// to match the field-task contract (B-1 audit fix). KYC pricing is FROZEN at
-// case-create time from kyc_rates; we never re-resolve.
+// Resolve the billing amount for a KYC cycle. Fails LOUD on missing snapshot
+// to match the field-task contract (B-1 audit fix). KYC pricing is FROZEN: the
+// cycle carries its own rate_amount (snapshotted at completion from the task's
+// estimated_amount); we never re-resolve from kyc_rates.
 const resolveKycTaskBillingAmount = (task: InvoiceKycTaskCandidateRow): { amount: number } => {
-  const candidate = task.actualAmount ?? task.estimatedAmount;
+  const candidate = task.rateAmount ?? task.actualAmount ?? task.estimatedAmount;
   const parsed = candidate !== null && candidate !== undefined ? Number(candidate) : NaN;
   if (!Number.isFinite(parsed) || parsed < 0) {
     throw new Error(
-      `Billing amount cannot be resolved for KYC task ${task.id} — ` +
-        `verification_tasks.actual_amount and estimated_amount are both NULL/invalid. ` +
+      `Billing amount cannot be resolved for KYC cycle ${task.cycleId} (task ${task.id}) — ` +
+        `cycle.rate_amount and the task actual/estimated snapshot are all NULL/invalid. ` +
         `KYC pricing snapshot is populated at case-create from kyc_rates; ` +
         `reconfigure kyc_rates for client=${task.clientId} product=${task.productId} ` +
         `documentType=${task.documentTypeId ?? 'null'} and re-create the task before billing.`
@@ -411,7 +415,12 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
         verificationTypeId: number | null;
         rateTypeId: number | null;
         productId: number | null;
-        linkedTasks: Array<{ taskId: string; caseId: string; billedAmount: number }>;
+        linkedTasks: Array<{
+          taskId: string;
+          caseId: string;
+          billedAmount: number;
+          kycCycleId: string | null;
+        }>;
       }> = [];
 
       if (useTaskDrivenGeneration) {
@@ -436,21 +445,24 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
                 taskId: task.id,
                 caseId: task.caseId,
                 billedAmount: resolved.amount,
+                kycCycleId: null,
               },
             ],
           });
         }
 
-        // C-2 + KYC billing (audit 2026-05-11): KYC tasks land in invoice_items
-        // with frozen pricing (no runtime re-resolution). verification_type_id
-        // and rate_type_id are NULL (KYC pricing is keyed on document_type
-        // via kyc_rates, snapshotted onto verification_tasks at
-        // case-create).
+        // P4 (2026-06-02): KYC cycles land in invoice_items with frozen pricing
+        // (no runtime re-resolution). verification_type_id and rate_type_id are
+        // NULL. Each cycle is a separate line; reverification cycles get a
+        // "Reverification #N" suffix so the invoice shows separate entries.
         for (const kycTask of kycTaskCandidates) {
           const resolved = resolveKycTaskBillingAmount(kycTask);
           const docLabel = kycTask.documentTypeName || kycTask.documentTypeCode || 'Document';
+          const base = kycTask.taskTitle || `KYC Verification — ${docLabel}`;
+          const description =
+            kycTask.cycleNumber > 1 ? `${base} (Reverification #${kycTask.cycleNumber})` : base;
           generatedLines.push({
-            description: kycTask.taskTitle || `KYC Verification — ${docLabel}`,
+            description,
             quantity: 1,
             unitPrice: resolved.amount,
             amount: resolved.amount,
@@ -462,6 +474,7 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
                 taskId: kycTask.id,
                 caseId: kycTask.caseId,
                 billedAmount: resolved.amount,
+                kycCycleId: kycTask.cycleId,
               },
             ],
           });
@@ -561,8 +574,8 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
         if (line.linkedTasks.length > 0) {
           const taskValues = line.linkedTasks
             .map((_t, i) => {
-              const o = i * 5;
-              return `($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5})`;
+              const o = i * 6;
+              return `($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5}, $${o + 6})`;
             })
             .join(', ');
           const taskParams = line.linkedTasks.flatMap(linkedTask => [
@@ -571,14 +584,30 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
             linkedTask.caseId,
             clientId,
             linkedTask.billedAmount,
+            linkedTask.kycCycleId,
           ]);
           await client.query(
             `INSERT INTO invoice_item_tasks (
-               invoice_item_id, verification_task_id, case_id, client_id, billed_amount
+               invoice_item_id, verification_task_id, case_id, client_id, billed_amount, kyc_cycle_id
              ) VALUES ${taskValues}`,
             taskParams
           );
         }
+      }
+
+      // P4 (2026-06-02): mark the billed KYC cycles so the per-cycle loader
+      // won't re-offer them. Each cycle is billed exactly once (enforced by
+      // uq_iit_kyc_cycle); this flag is the loader's "unbilled" signal.
+      const billedCycleIds = generatedLines
+        .flatMap(l => l.linkedTasks)
+        .map(t => t.kycCycleId)
+        .filter((id): id is string => !!id);
+      if (billedCycleIds.length > 0) {
+        await client.query(
+          `UPDATE kyc_verification_cycles SET billed = true, updated_at = now()
+             WHERE id = ANY($1::uuid[])`,
+          [billedCycleIds]
+        );
       }
 
       await recordInvoiceStatusHistory(
@@ -893,6 +922,9 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
         pincodeId: number | null;
         clientId: number;
         productId: number;
+        kycCycleId: string | null;
+        kycCycleNumber: number | null;
+        kycRateAmount: string | null;
       }>(
         `SELECT
            iit.id as link_id,
@@ -908,11 +940,15 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
            vt.task_type,
            p.id as pincode_id,
            c.client_id as client_id,
-           c.product_id as product_id
+           c.product_id as product_id,
+           iit.kyc_cycle_id,
+           cyc.cycle_number as kyc_cycle_number,
+           cyc.rate_amount::text as kyc_rate_amount
          FROM invoice_item_tasks iit
          JOIN verification_tasks vt ON vt.id = iit.verification_task_id
          JOIN cases c ON c.id = vt.case_id
          LEFT JOIN pincodes p ON p.id = vt.pincode_id
+         LEFT JOIN kyc_verification_cycles cyc ON cyc.id = iit.kyc_cycle_id
          JOIN invoice_items ii ON ii.id = iit.invoice_item_id
          WHERE ii.invoice_id = $1`,
         [Number(id)]
@@ -939,6 +975,9 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
                 documentTypeCode: null,
                 clientId: linkedTask.clientId,
                 productId: linkedTask.productId,
+                cycleId: linkedTask.kycCycleId ?? '',
+                cycleNumber: linkedTask.kycCycleNumber ?? 1,
+                rateAmount: linkedTask.kycRateAmount,
               })
             : await resolveTaskBillingAmount({
                 id: linkedTask.verificationTaskId,
@@ -1138,6 +1177,17 @@ const transitionInvoiceStatus = async (
     // out of any future invoice. invoice_items + invoices remain (audit
     // trail intact via invoice_items.description + status_history).
     if (nextStatus === STATUS.CANCELLED) {
+      // P4 (2026-06-02): for KYC cycle lines, reset cycle.billed=false BEFORE
+      // deleting the link rows so the cancelled cycle re-enters the per-cycle
+      // loader and can be re-billed. The cycle row itself is NEVER deleted
+      // (immutable history).
+      await client.query(
+        `UPDATE kyc_verification_cycles c SET billed = false, updated_at = now()
+           FROM invoice_item_tasks iit
+           JOIN invoice_items ii ON ii.id = iit.invoice_item_id
+          WHERE iit.kyc_cycle_id = c.id AND ii.invoice_id = $1`,
+        [Number(id)]
+      );
       await client.query(
         `DELETE FROM invoice_item_tasks
          WHERE invoice_item_id IN (
