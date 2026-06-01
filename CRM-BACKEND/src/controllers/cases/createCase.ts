@@ -1,0 +1,1195 @@
+import type { Response } from 'express';
+import { pool, wrapClient } from '../../config/database';
+import path from 'path';
+import fs from 'fs';
+import type { AuthenticatedRequest } from '../../middleware/auth';
+import { logger } from '../../utils/logger';
+import { redact } from '../../utils/logRedact';
+import {
+  CreateApplicantData,
+  CreateCaseRequest,
+  CreateVerificationTask,
+  KYCDocumentInput,
+} from '../../types/cases';
+import {
+  VerificationTaskCreationError,
+  VerificationTaskCreationService,
+} from '../../services/verificationTaskCreationService';
+import { CacheKeys, invalidateCachePatterns } from '../../services/enterpriseCacheService';
+import { requireControllerPermission } from '@/security/controllerAuthorization';
+import { createAuditLog } from '../../utils/auditLogger';
+
+interface DatabaseError extends Error {
+  code?: string;
+  constraint?: string;
+  detail?: string;
+  hint?: string;
+  column?: string;
+  stack?: string;
+}
+
+/**
+ * POST /api/cases/create - Unified case creation endpoint
+ * Handles all scenarios: single/multi-task, with/without attachments
+ *
+ * PRODUCTION FEATURES:
+ * - Handles 500+ concurrent requests
+ * - Automatic retry on transient failures
+ * - Comprehensive error handling
+ * - File cleanup on all error paths
+ * - Connection timeout protection
+ * - Memory-efficient processing
+ * - Detailed logging for debugging
+ */
+// NOTE: `createCase` used to be a middleware ARRAY that wrapped multer
+// and the handler together. It was refactored into a plain async
+// function so routes/cases.ts can wire multer + normalize + validate
+// + scope-check in explicit order. See `uploadForCaseCreation`,
+// `normalizeCaseCreationBody`, and `createCaseValidation` exports
+// above for the pieces routes/cases.ts composes.
+export const createCase = async (req: AuthenticatedRequest, res: Response) => {
+  let client: import('pg').PoolClient | undefined;
+  const uploadedFiles: Express.Multer.File[] = (req.files as Express.Multer.File[]) || [];
+  const startTime = Date.now();
+
+  // Helper function to cleanup uploaded files
+  const cleanupFiles = async () => {
+    if (uploadedFiles && uploadedFiles.length > 0) {
+      try {
+        const tempDir = path.dirname(uploadedFiles[0].path);
+        if (fs.existsSync(tempDir) && tempDir.includes('temp')) {
+          await fs.promises.rm(tempDir, { recursive: true, force: true });
+          logger.debug('Cleaned up temp files', { tempDir, fileCount: uploadedFiles.length });
+        }
+      } catch (cleanupError) {
+        logger.warn('Failed to cleanup temp files:', { error: cleanupError });
+      }
+    }
+  };
+
+  // Permission + auth checks BEFORE the outer try/finally block.
+  // Previously the `requireControllerPermission` check lived inside
+  // the main try, which made a reader wonder whether the finally's
+  // `if (client) client.release()` ran on early return. It does —
+  // but `client` is still undefined at that point, so the guard
+  // no-ops correctly. That's not obvious from a cold read, and any
+  // future refactor that initializes `client` earlier would
+  // accidentally introduce a real leak.
+  //
+  // Hoisting the check out of the try block makes it structurally
+  // impossible to reach `pool.connect()` without passing
+  // permission, so the finally's guard is genuinely belt-and-
+  // suspenders instead of load-bearing. The route-level
+  // `authorize('case.create')` middleware is the primary gate;
+  // this in-handler check is defense in depth against a future
+  // route wiring mistake.
+  if (!requireControllerPermission(req, res, 'case.create')) {
+    await cleanupFiles();
+    return;
+  }
+
+  const userId = req.user!.id;
+  if (!userId) {
+    await cleanupFiles();
+    return res.status(401).json({
+      success: false,
+      message: 'User authentication required',
+      error: { code: 'UNAUTHORIZED' },
+    });
+  }
+
+  try {
+    // ========== ACQUIRE DATABASE CONNECTION WITH TIMEOUT ==========
+    const connectionTimeout = setTimeout(() => {
+      logger.error('Database connection timeout', { userId: req.user?.id });
+    }, 5000); // 5 second warning
+
+    try {
+      client = wrapClient(await pool.connect());
+      clearTimeout(connectionTimeout);
+    } catch (connError: unknown) {
+      clearTimeout(connectionTimeout);
+      const err = connError as DatabaseError;
+      logger.error('Failed to acquire database connection:', {
+        error: err.message,
+        code: err.code,
+        userId: req.user?.id,
+      });
+      await cleanupFiles();
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection unavailable. Please try again.',
+        error: { code: 'DB_CONNECTION_ERROR' },
+      });
+    }
+
+    // Set statement timeout to prevent long-running queries
+    await client.query('SET statement_timeout = 30000'); // 30 seconds
+
+    await client.query('BEGIN');
+
+    // `userId` was hoisted above the try block so unauthenticated
+    // users never reach pool.connect(). The hoisted const is in
+    // scope here; this block used to re-declare and check it
+    // inside the transaction, which wasted a connection + BEGIN
+    // for every missing-auth request.
+
+    // ========== PARSE AND VALIDATE REQUEST DATA ==========
+    let requestData: CreateCaseRequest;
+    try {
+      // Log only the shape of the request, with sensitive fields masked.
+      logger.debug('createCase request received', {
+        bodyKeys: Object.keys(req.body || {}),
+        payload: redact(req.body),
+      });
+
+      // #5 fix: normalizeCaseCreationBody (middleware) already
+      // JSON.parse's req.body.data for FormData uploads and
+      // deletes the raw `data` key (line 149). The handler no
+      // longer needs a conditional branch — req.body is always
+      // the final shape by the time we get here.
+      requestData = req.body as CreateCaseRequest;
+
+      // Log the parsed request data for debugging
+      logger.info('Case creation request received:', {
+        userId,
+        hasFormData: !!req.body.data,
+        caseDetailsKeys: requestData.caseDetails ? Object.keys(requestData.caseDetails) : [],
+        applicantsCount: requestData.applicants?.length || 0,
+        firstApplicantKeys: requestData.applicants?.[0]
+          ? Object.keys(requestData.applicants[0])
+          : [],
+      });
+    } catch (parseError: unknown) {
+      await client.query('ROLLBACK');
+      await cleanupFiles();
+      const err = parseError as DatabaseError;
+      logger.error('Failed to parse request data:', {
+        error: err.message,
+        userId,
+        bodyKeys: Object.keys(req.body),
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request format',
+        error: { code: 'INVALID_JSON' },
+      });
+    }
+
+    const caseDetails = requestData.caseDetails;
+    const verificationTasksFromRequest = requestData.verificationTasks;
+    let applicantsData = requestData.applicants;
+    // Normalize legacy snakeCase payloads at the controller boundary while
+    // keeping the internal API contract camelCase.
+    const getNumericField = (
+      record: Record<string, unknown>,
+      ...fieldNames: string[]
+    ): number | null => {
+      for (const fieldName of fieldNames) {
+        const value = record[fieldName];
+        if (value === undefined || value === null) {
+          continue;
+        }
+        const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+        if (stringValue.trim() === '') {
+          continue;
+        }
+        const parsedValue = Number(value);
+        if (!Number.isNaN(parsedValue) && parsedValue > 0) {
+          return parsedValue;
+        }
+      }
+      return null;
+    };
+
+    if (
+      (!Array.isArray(applicantsData) || applicantsData.length === 0) &&
+      Array.isArray(verificationTasksFromRequest) &&
+      verificationTasksFromRequest.length > 0
+    ) {
+      const applicantsMap = new Map<
+        string,
+        {
+          name: string;
+          mobile: string;
+          role: string;
+          panNumber?: string;
+          verifications: CreateVerificationTask[];
+        }
+      >();
+      const pincodeIdCache = new Map<string, number | null>();
+
+      const resolvePincodeId = async (pincodeValue: unknown): Promise<number | null> => {
+        if (!pincodeValue) {
+          return null;
+        }
+        const pincodeCode =
+          typeof pincodeValue === 'string'
+            ? pincodeValue.trim()
+            : typeof pincodeValue === 'number'
+              ? String(pincodeValue).trim()
+              : '';
+        if (!pincodeCode) {
+          return null;
+        }
+        if (pincodeIdCache.has(pincodeCode)) {
+          return pincodeIdCache.get(pincodeCode) ?? null;
+        }
+
+        const pincodeResult = await client!.query('SELECT id FROM pincodes WHERE code = $1', [
+          pincodeCode,
+        ]);
+        const resolvedId = pincodeResult.rows[0]?.id ? Number(pincodeResult.rows[0].id) : null;
+        pincodeIdCache.set(pincodeCode, resolvedId);
+        return resolvedId;
+      };
+
+      for (const taskRaw of verificationTasksFromRequest) {
+        const task = taskRaw as Record<string, unknown>;
+        const role = String(
+          (task.applicantType as string) ||
+            (task.applicantType as string) ||
+            caseDetails?.applicantType ||
+            'APPLICANT'
+        );
+        const name = String(
+          ((task.applicant as Record<string, unknown> | undefined)?.name as string) ||
+            caseDetails?.customerName ||
+            'Applicant'
+        );
+        const mobile = String(
+          ((task.applicant as Record<string, unknown> | undefined)?.mobile as string) ||
+            caseDetails?.customerPhone ||
+            ''
+        );
+        const panNumber = String(
+          ((task.applicant as Record<string, unknown> | undefined)?.panNumber as string) ||
+            caseDetails?.panNumber ||
+            ''
+        );
+        const verificationTypeId =
+          getNumericField(task, 'verificationTypeId', 'verificationTypeId') || 0;
+        if (!verificationTypeId) {
+          continue;
+        }
+
+        const pincodeIdFromTask =
+          task.pincodeId && Number(task.pincodeId)
+            ? Number(task.pincodeId)
+            : await resolvePincodeId(task.pincode);
+
+        const applicantKey = `${role}:${mobile || name}`;
+        if (!applicantsMap.has(applicantKey)) {
+          applicantsMap.set(applicantKey, {
+            name,
+            mobile,
+            role,
+            panNumber: panNumber || undefined,
+            verifications: [],
+          });
+        }
+
+        applicantsMap.get(applicantKey)!.verifications.push({
+          verificationTypeId,
+          address: task.address || null,
+          pincodeId:
+            getNumericField(task, 'pincodeId', 'pincodeId') || pincodeIdFromTask || undefined,
+          assignedTo: (task.assignedTo || task.assignedTo || null) as string | null,
+          estimatedCompletionDate: (task.estimatedCompletionDate || task.slaDeadline || null) as
+            | string
+            | null,
+        } as unknown as CreateVerificationTask);
+      }
+
+      applicantsData = Array.from(applicantsMap.values()) as CreateApplicantData[];
+    }
+
+    logger.info('Parsed applicants:', applicantsData);
+    logger.info('Parsed verificationTasks:', verificationTasksFromRequest);
+
+    // ========== COMPREHENSIVE VALIDATION ==========
+    if (!caseDetails || typeof caseDetails !== 'object') {
+      const validationError = new Error('caseDetails is required');
+      (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+      throw validationError;
+    }
+    if (!applicantsData || !Array.isArray(applicantsData) || applicantsData.length === 0) {
+      const validationError = new Error('At least one applicant is required');
+      (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+      throw validationError;
+    }
+
+    const {
+      clientId,
+      productId,
+      customerName,
+      customerPhone,
+      customerCallingCode,
+      verificationTypeId,
+      applicantType,
+      trigger,
+      priority = 'MEDIUM',
+      backendContactNumber,
+      // #1 fix: panNumber was sent by the frontend but never
+      // extracted or INSERTed into cases.pan_number. The column
+      // exists in the DB and dedup search queries it — but it was
+      // always NULL, so PAN-based dedup never found matches.
+      panNumber,
+      deduplicationDecision,
+      deduplicationRationale,
+    } = caseDetails;
+
+    const resolvedCaseCustomerName =
+      (customerName ? String(customerName).trim() : '') ||
+      (Array.isArray(applicantsData) && applicantsData.length > 0 && applicantsData[0].name
+        ? String(applicantsData[0].name).trim()
+        : '');
+    const resolvedCaseVerificationTypeId =
+      (verificationTypeId ? Number(verificationTypeId) : null) ||
+      (Array.isArray(verificationTasksFromRequest) &&
+      verificationTasksFromRequest.length > 0 &&
+      getNumericField(
+        verificationTasksFromRequest[0] as Record<string, unknown>,
+        'verificationTypeId',
+        'verificationTypeId'
+      )
+        ? getNumericField(
+            verificationTasksFromRequest[0] as Record<string, unknown>,
+            'verificationTypeId',
+            'verificationTypeId'
+          )
+        : null) ||
+      (Array.isArray(applicantsData) &&
+      applicantsData.length > 0 &&
+      Array.isArray(applicantsData[0].verifications) &&
+      applicantsData[0].verifications.length > 0 &&
+      getNumericField(
+        applicantsData[0].verifications[0] as Record<string, unknown>,
+        'verificationTypeId',
+        'verificationTypeId'
+      )
+        ? getNumericField(
+            applicantsData[0].verifications[0] as Record<string, unknown>,
+            'verificationTypeId',
+            'verificationTypeId'
+          )
+        : null);
+    const resolvedCaseApplicantType =
+      (applicantType ? String(applicantType) : null) ||
+      (Array.isArray(applicantsData) && applicantsData.length > 0 && applicantsData[0].role
+        ? String(applicantsData[0].role)
+        : null) ||
+      (Array.isArray(verificationTasksFromRequest) &&
+      verificationTasksFromRequest.length > 0 &&
+      ((verificationTasksFromRequest[0] as Record<string, unknown>).applicantType ||
+        (verificationTasksFromRequest[0] as Record<string, unknown>).applicantType)
+        ? String(
+            ((verificationTasksFromRequest[0] as Record<string, unknown>)
+              .applicantType as string) ||
+              ((verificationTasksFromRequest[0] as Record<string, unknown>).applicantType as string)
+          )
+        : null);
+    const resolvedCaseTrigger =
+      (trigger ? String(trigger) : null) ||
+      (Array.isArray(verificationTasksFromRequest) &&
+      verificationTasksFromRequest.length > 0 &&
+      (verificationTasksFromRequest[0] as Record<string, unknown>).trigger
+        ? String((verificationTasksFromRequest[0] as Record<string, unknown>).trigger as string)
+        : null);
+    const resolvedClientId =
+      clientId !== undefined && clientId !== null && String(clientId).trim() !== ''
+        ? Number(clientId)
+        : null;
+    const resolvedProductId =
+      productId !== undefined && productId !== null && String(productId).trim() !== ''
+        ? Number(productId)
+        : null;
+    const resolvedBackendContactNumber =
+      backendContactNumber !== undefined && backendContactNumber !== null
+        ? String(backendContactNumber).trim()
+        : '';
+    // For KYC-only cases, verificationTypeId and trigger are optional
+    const kycDocumentsForValidation = (requestData as unknown as Record<string, unknown>)
+      .kycDocuments as unknown[] | undefined;
+    const isKYCOnlyCase =
+      kycDocumentsForValidation &&
+      kycDocumentsForValidation.length > 0 &&
+      (!verificationTasksFromRequest || (verificationTasksFromRequest as unknown[]).length === 0);
+
+    if (
+      !resolvedClientId ||
+      !resolvedProductId ||
+      !resolvedBackendContactNumber ||
+      !resolvedCaseCustomerName ||
+      (!isKYCOnlyCase && !resolvedCaseVerificationTypeId) ||
+      !resolvedCaseApplicantType ||
+      (!isKYCOnlyCase && !resolvedCaseTrigger)
+    ) {
+      const missingFields = [
+        !resolvedClientId ? 'clientId' : null,
+        !resolvedProductId ? 'productId' : null,
+        !resolvedBackendContactNumber ? 'backendContactNumber' : null,
+        !resolvedCaseCustomerName ? 'customerName' : null,
+        !isKYCOnlyCase && !resolvedCaseVerificationTypeId ? 'verificationTypeId' : null,
+        !resolvedCaseApplicantType ? 'applicantType' : null,
+        !isKYCOnlyCase && !resolvedCaseTrigger ? 'trigger' : null,
+      ].filter(Boolean);
+      const validationError = new Error(
+        `Missing required case fields: ${missingFields.join(', ')}`
+      );
+      (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+      throw validationError;
+    }
+
+    // ========== BUSINESS RULE: AT LEAST ONE TASK, EVERY TASK ASSIGNED ==========
+    // A case cannot be created without at least one field verification task
+    // OR at least one KYC verification task. Every task must be assigned to
+    // a user at creation time. The "Unassigned" state is not permitted.
+    const fieldTaskCount = Array.isArray(verificationTasksFromRequest)
+      ? verificationTasksFromRequest.length
+      : 0;
+    const kycTaskCount = Array.isArray(kycDocumentsForValidation)
+      ? kycDocumentsForValidation.length
+      : 0;
+
+    if (fieldTaskCount === 0 && kycTaskCount === 0) {
+      const err = new Error(
+        'A case must include at least one field verification task or KYC verification task'
+      );
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+
+    if (fieldTaskCount > 0) {
+      for (let i = 0; i < fieldTaskCount; i++) {
+        const task = (verificationTasksFromRequest as Record<string, unknown>[])[i];
+        const taskAssignee = task?.assignedTo;
+        if (!taskAssignee || (typeof taskAssignee === 'string' && taskAssignee.trim() === '')) {
+          const taskTitleLabel =
+            typeof task?.taskTitle === 'string' ? ` ("${task.taskTitle}")` : '';
+          const err = new Error(
+            `Field task ${i + 1}${taskTitleLabel} must be assigned to a field executive at creation time`
+          );
+          (err as DatabaseError).code = 'VALIDATION_ERROR';
+          throw err;
+        }
+      }
+    }
+
+    if (kycTaskCount > 0) {
+      for (let i = 0; i < kycTaskCount; i++) {
+        const doc = (kycDocumentsForValidation as Record<string, unknown>[])[i];
+        const docAssignee = doc?.assignedTo;
+        if (!docAssignee || (typeof docAssignee === 'string' && docAssignee.trim() === '')) {
+          const docTypeLabel =
+            typeof doc?.documentType === 'string' ? ` ("${doc.documentType}")` : '';
+          const err = new Error(
+            `KYC document ${i + 1}${docTypeLabel} must be assigned to a centralized user at creation time`
+          );
+          (err as DatabaseError).code = 'VALIDATION_ERROR';
+          throw err;
+        }
+      }
+    }
+
+    // ========== VALIDATE MASTER DATA EXISTS ==========
+    const [clientCheck, productCheck, productClientCheck] = await Promise.all([
+      client.query('SELECT id, is_active FROM clients WHERE id = $1', [resolvedClientId]),
+      client.query('SELECT id, is_active FROM products WHERE id = $1', [resolvedProductId]),
+      client.query('SELECT 1 FROM client_products WHERE client_id = $1 AND product_id = $2', [
+        resolvedClientId,
+        resolvedProductId,
+      ]),
+    ]);
+
+    if (clientCheck.rows.length === 0) {
+      const err = new Error('Client not found');
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+    if (!clientCheck.rows[0].isActive) {
+      const err = new Error('Client is inactive');
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+    if (productCheck.rows.length === 0) {
+      const err = new Error('Product not found');
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+    if (!productCheck.rows[0].isActive) {
+      const err = new Error('Product is inactive');
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+    if (productClientCheck.rows.length === 0) {
+      const err = new Error('Product does not belong to the specified client');
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+
+    // ========== CREATE CASE ==========
+    // Bug 2+3 fix: persist dedup decision + rationale on the case
+    // row itself so the audit trail lives on the entity, not just
+    // in a separate audit table that may or may not have been
+    // populated by a detached frontend call.
+    const resolvedDedupDecision =
+      typeof deduplicationDecision === 'string' && deduplicationDecision.trim()
+        ? deduplicationDecision.trim()
+        : null;
+    const resolvedDedupRationale =
+      typeof deduplicationRationale === 'string' && deduplicationRationale.trim()
+        ? deduplicationRationale.trim()
+        : null;
+
+    // #1 fix: resolve panNumber — uppercase, trim, null if empty.
+    const resolvedPanNumber =
+      typeof panNumber === 'string' && panNumber.trim() ? panNumber.trim().toUpperCase() : null;
+
+    const caseResult = await client.query(
+      `INSERT INTO cases (
+          client_id, product_id, customer_name, customer_phone, customer_calling_code,
+          priority, backend_contact_number, pan_number,
+          verification_type_id, applicant_type, trigger, created_by_backend_user,
+          deduplication_checked, deduplication_decision, deduplication_rationale,
+          status, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'PENDING', NOW(), NOW()) RETURNING *`,
+      [
+        resolvedClientId,
+        resolvedProductId,
+        resolvedCaseCustomerName,
+        customerPhone || null,
+        customerCallingCode || null,
+        priority,
+        resolvedBackendContactNumber,
+        resolvedPanNumber,
+        resolvedCaseVerificationTypeId || null,
+        resolvedCaseApplicantType,
+        resolvedCaseTrigger || (isKYCOnlyCase ? 'KYC Document Verification' : null),
+        userId,
+        resolvedDedupDecision !== null,
+        resolvedDedupDecision,
+        resolvedDedupRationale,
+      ]
+    );
+    const newCase = caseResult.rows[0];
+
+    // Bug 2 fix: insert the dedup audit record NOW with the real
+    // case UUID, inside the same transaction. The frontend's
+    // detached call to /api/cases/deduplication/decision was
+    // silently skipped for CREATE_NEW (the backend returned early
+    // for 'NEW_CASE_PLACEHOLDER' caseId), so the audit table was
+    // never populated. Writing it here with the real ID means the
+    // audit trail is always created for dedup-checked cases.
+    if (resolvedDedupDecision && newCase.id) {
+      try {
+        await client.query(
+          `INSERT INTO case_deduplication_audit (
+              case_id, search_criteria, duplicates_found,
+              user_decision, rationale, performed_by
+            ) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            newCase.id,
+            JSON.stringify({
+              customerName: resolvedCaseCustomerName,
+              customerPhone: customerPhone || null,
+              panNumber: (caseDetails as Record<string, unknown>).panNumber || null,
+            }),
+            JSON.stringify([]), // duplicates list is not passed in the create payload
+            resolvedDedupDecision,
+            resolvedDedupRationale,
+            userId,
+          ]
+        );
+      } catch (auditErr) {
+        // Non-fatal — the case row already has the dedup fields,
+        // so the data is not lost even if the audit insert fails
+        // (e.g. the audit table doesn't exist yet on an older
+        // migration level). Log and continue.
+        logger.warn('Failed to insert dedup audit record (non-fatal)', auditErr);
+      }
+    }
+
+    const createdHierarchy = [];
+
+    // ========== CREATE APPLICANTS, VERIFICATIONS, VISITS ==========
+    for (const appData of applicantsData) {
+      const applicantResult = await client.query(
+        `INSERT INTO applicants (case_id, name, mobile, role, pan_number, id_details)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [
+          newCase.id,
+          appData.name,
+          appData.mobile,
+          appData.role || 'APPLICANT',
+          appData.panNumber,
+          appData.idDetails || {},
+        ]
+      );
+      const applicant = applicantResult.rows[0];
+
+      // F5.3.1 cleanup (2026-04-29): the legacy `verifications` + `visits`
+      // tables were dropped — the field-verification workflow is now
+      // exclusively `cases → verification_tasks → verification_attachments`.
+      // The KYC workflow is `verification_tasks (task_type='KYC') →
+      // kyc_document_verifications`. Inputs in `appData.verifications` are
+      // ignored; clients should use the top-level `verificationTasks` array
+      // on the case-creation request instead.
+      createdHierarchy.push({ ...applicant, verifications: [] });
+    }
+
+    // Backward compatibility: Set customerName on case from primary applicant.
+    // Guard against empty/whitespace applicant name — overwriting a valid
+    // INSERT value with '' was the source of the case-98 sync bug
+    // (mobile NOT NULL constraint on tasks.customer_name).
+    const primaryApplicantName =
+      createdHierarchy.length > 0 && typeof createdHierarchy[0].name === 'string'
+        ? createdHierarchy[0].name.trim()
+        : '';
+    if (primaryApplicantName.length > 0) {
+      await client.query('UPDATE cases SET customer_name = $1 WHERE id = $2', [
+        primaryApplicantName,
+        newCase.id,
+      ]);
+    }
+
+    // Build verification tasks payload:
+    // 1) Prefer explicit verificationTasks from request
+    // 2) Fallback to applicants[].verifications[]
+    let tasksToCreate: Record<string, unknown>[] = [];
+
+    if (Array.isArray(verificationTasksFromRequest) && verificationTasksFromRequest.length > 0) {
+      tasksToCreate = verificationTasksFromRequest as unknown as Record<string, unknown>[];
+    } else {
+      // Cache pincodeId -> pincode code resolution to avoid repeated queries
+      const pincodeCodeCache = new Map<number, string>();
+
+      const resolvePincodeCode = async (pincodeId?: number): Promise<string | null> => {
+        if (!pincodeId) {
+          return null;
+        }
+        if (pincodeCodeCache.has(pincodeId)) {
+          return pincodeCodeCache.get(pincodeId) ?? null;
+        }
+
+        const pincodeRes = await client!.query('SELECT code FROM pincodes WHERE id = $1', [
+          pincodeId,
+        ]);
+        const pincodeCode = pincodeRes.rows[0]?.code ? String(pincodeRes.rows[0].code) : null;
+        if (pincodeCode) {
+          pincodeCodeCache.set(pincodeId, pincodeCode);
+        }
+        return pincodeCode;
+      };
+
+      for (const appData of applicantsData) {
+        if (!appData.verifications || !Array.isArray(appData.verifications)) {
+          continue;
+        }
+
+        for (const verData of appData.verifications) {
+          const pincodeCode =
+            typeof (verData as Record<string, unknown>).pincode === 'string'
+              ? String((verData as Record<string, unknown>).pincode as string)
+              : await resolvePincodeCode(
+                  Number(
+                    (verData as Record<string, unknown>).pincodeId ||
+                      (verData as Record<string, unknown>).pincodeId ||
+                      0
+                  ) || undefined
+                );
+
+          if (!pincodeCode) {
+            continue;
+          }
+
+          tasksToCreate.push({
+            verificationTypeId:
+              (verData as Record<string, unknown>).verificationTypeId ||
+              (verData as Record<string, unknown>).verificationTypeId,
+            taskTitle: `Verification for ${appData.name}`,
+            taskDescription: 'Auto-generated task from case creation',
+            priority: caseDetails.priority || 'MEDIUM',
+            assignedTo:
+              (verData as Record<string, unknown>).assignedTo ||
+              (verData as Record<string, unknown>).assignedTo ||
+              null,
+            address: (verData as Record<string, unknown>).address,
+            pincode: pincodeCode,
+            estimatedCompletionDate:
+              (verData as Record<string, unknown>).slaDeadline ||
+              (verData as Record<string, unknown>).estimatedCompletionDate,
+            areaId:
+              (verData as Record<string, unknown>).areaId ||
+              (verData as Record<string, unknown>).areaId ||
+              null,
+            applicantType: appData.role || 'APPLICANT',
+            trigger: caseDetails.trigger || null,
+          });
+        }
+      }
+    }
+
+    // Allow empty field tasks if KYC documents are provided
+    const kycDocumentsFromRequest = (requestData as unknown as Record<string, unknown>)
+      .kycDocuments as unknown[] | undefined;
+    const hasKYCDocuments = kycDocumentsFromRequest && kycDocumentsFromRequest.length > 0;
+
+    if ((!tasksToCreate || tasksToCreate.length === 0) && !hasKYCDocuments) {
+      const validationError = new Error(
+        'At least one verification task or KYC document is required'
+      );
+      (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+      throw validationError;
+    }
+
+    // Atomic requirement:
+    // case + hierarchy + verification tasks must all succeed in one transaction
+    let taskCreationResult: { createdTasks: unknown[] } = { createdTasks: [] };
+    if (tasksToCreate && tasksToCreate.length > 0) {
+      taskCreationResult = await VerificationTaskCreationService.createForCase(
+        client,
+        newCase.id,
+        tasksToCreate,
+        userId
+      );
+    }
+
+    // Create KYC document verification tasks if provided
+    const kycDocuments = kycDocumentsFromRequest as KYCDocumentInput[] | undefined;
+    // Phase 1.2d / Bug 42 (re-audit 2026-05-04): collect KYC task rows so we
+    // can queue case-assignment notifications post-COMMIT alongside the
+    // FIELD verification tasks. Without this, KYC users assigned at
+    // case-creation time never receive a backend notification — the same
+    // failure mode bug 42 fixed for FIELD users.
+    const kycTasksCreated: Array<{
+      id: string;
+      taskNumber?: string | null;
+      assignedTo: string;
+      documentType: string;
+    }> = [];
+
+    if (kycDocuments && kycDocuments.length > 0) {
+      for (const doc of kycDocuments) {
+        // Business rule: every KYC task MUST be assigned to a centralized
+        // (backend) user at creation time. "Unassigned" KYC tasks are not
+        // allowed.
+        if (!doc.assignedTo || String(doc.assignedTo).trim() === '') {
+          const assigneeError = new Error(
+            `KYC document "${doc.documentType}" must be assigned to a centralized user at creation time`
+          );
+          (assigneeError as DatabaseError).code = 'VALIDATION_ERROR';
+          throw assigneeError;
+        }
+
+        // Look up KYC rate from kycRates (client + product + kycDocumentType)
+        // Round 2 #4 (2026-05-04): backend defense-in-depth — if no active
+        // rate exists for the (client, product, doc_type) tuple, REJECT
+        // the request rather than silently inserting `rate_amount=null`.
+        // The frontend Phase 1.4 hasRate gate already blocks submit, but
+        // this guards against direct API callers + future regressions.
+        // Doc type FK lookup failure is also fatal here (was warn-only
+        // before, but the kdv INSERT below would FK-fail anyway).
+        let rateAmount: number | null = null;
+        const kycDocTypeRes = await client.query(`SELECT id FROM document_types WHERE code = $1`, [
+          doc.documentType,
+        ]);
+        if (kycDocTypeRes.rows.length === 0) {
+          const docTypeError = new Error(
+            `Unknown KYC document type "${doc.documentType}". Configure it in Document Types or pick a different one.`
+          );
+          (docTypeError as DatabaseError).code = 'VALIDATION_ERROR';
+          throw docTypeError;
+        }
+        const kycDocTypeId = kycDocTypeRes.rows[0].id;
+        const rateRes = await client.query(
+          `SELECT amount FROM kyc_rates
+             WHERE client_id = $1 AND product_id = $2 AND document_type_id = $3 AND is_active = true
+             ORDER BY effective_from DESC NULLS LAST
+             LIMIT 1`,
+          [newCase.clientId, newCase.productId, kycDocTypeId]
+        );
+        if (rateRes.rows.length === 0) {
+          const rateError = new Error(
+            `No active rate configured for KYC document "${doc.documentType}" under client+product. Add a rate in Rate Management → KYC Rates before creating this case.`
+          );
+          (rateError as DatabaseError).code = 'KYC_RATE_MISSING';
+          throw rateError;
+        }
+        rateAmount = parseFloat(rateRes.rows[0].amount);
+
+        // Create a verificationTask with taskType = 'KYC'. The assignee is
+        // validated above so this INSERT always uses the ASSIGNED state.
+        // Phase 1.2d: also RETURN task_number so the assignment notification
+        // shows "KYC: <type> · Task: VT-XXX" to the assigned KYC user.
+        // task_number is auto-generated by trigger_generate_task_number
+        // BEFORE INSERT regardless of task_type.
+        // F9.2 (2026-05-26): KYC verification_tasks now point at the
+        // 'KYC Verification' verification_types row (code='KYC') so the
+        // shared 'Verification Type' column in case-detail/cases-list views
+        // displays a value instead of '-'. The CHECK constraint
+        // chk_vt_type_matches_task_type was relaxed in the same migration.
+        const kycTaskResult = await client.query(
+          `INSERT INTO verification_tasks (
+              case_id, task_title, task_description, priority, status,
+              task_type, verification_type_id, created_by, estimated_amount,
+              assigned_to, assigned_by, assigned_at
+            ) VALUES (
+              $1, $2, $3, 'MEDIUM', 'ASSIGNED', 'KYC',
+              (SELECT id FROM verification_types WHERE code='KYC' LIMIT 1),
+              $4, $5, $6, $7, NOW()
+            )
+            RETURNING id, task_number`,
+          [
+            newCase.id,
+            `KYC: ${doc.documentType.replace(/_/g, ' ')}`,
+            `KYC document verification for ${doc.documentType}`,
+            userId,
+            rateAmount,
+            doc.assignedTo,
+            userId,
+          ]
+        );
+
+        const kycTaskId = kycTaskResult.rows[0].id;
+        const kycTaskNumber = kycTaskResult.rows[0].task_number as string | null;
+        kycTasksCreated.push({
+          id: kycTaskId,
+          taskNumber: kycTaskNumber,
+          assignedTo: String(doc.assignedTo),
+          documentType: doc.documentType,
+        });
+
+        // Create the KYC document verification record. Assignee is
+        // guaranteed by the validation above.
+        // F8.2.2: document_type is now FK-only (varchar dropped). Frontend
+        // still sends the code string (e.g. 'AADHAR_CARD') in doc.documentType;
+        // resolve to the FK id at INSERT time. The CHECK is the FK itself —
+        // if code doesn't exist, FK violation surfaces a 23503 error.
+        await client.query(
+          `INSERT INTO kyc_document_verifications (
+              verification_task_id, case_id, document_type_id,
+              document_number, document_holder_name, verification_status,
+              document_details, description,
+              assigned_to, assigned_by, assigned_at, rate_amount
+            ) VALUES (
+              $1, $2,
+              (SELECT id FROM document_types WHERE code = $3 AND is_active = true LIMIT 1),
+              $4, $5, 'PENDING', $6, $7, $8, $9, NOW(), $10
+            )`,
+          [
+            kycTaskId,
+            newCase.id,
+            doc.documentType,
+            doc.documentNumber || null,
+            doc.documentHolderName || requestData.caseDetails?.customerName || null,
+            JSON.stringify(doc.documentDetails || {}),
+            doc.description || null,
+            doc.assignedTo,
+            userId,
+            rateAmount,
+          ]
+        );
+      }
+
+      logger.info(
+        `Created ${kycDocuments.length} KYC verification tasks for case ${newCase.caseId}`
+      );
+    }
+
+    // Explicit commit before returning success
+    await client.query('COMMIT');
+
+    // Invalidate analytics/case-stats cache after new case creation
+    void invalidateCachePatterns(CacheKeys.invalidateCase(newCase.id));
+
+    // Bug 42 + Phase 1.2d (2026-05-04): queue case-assignment notification
+    // per task that got an `assigned_to`. Covers BOTH FIELD verification
+    // tasks (from VerificationTaskCreationService.createForCase) AND KYC
+    // tasks (from the inline INSERT loop above). Without this, neither
+    // FIELD agents nor KYC users receive a backend notification row for
+    // tasks created via /api/cases/create — only the separate
+    // /api/verification-tasks/.../reassign path was wired (see
+    // verificationTasksController.ts:241-281). Mobile would then either
+    // show nothing or self-generate locally (and re-fire on every
+    // local-DB wipe, see SyncDownloadService.ts bug 43). Best-effort —
+    // failures don't fail the create.
+    try {
+      const { queueCaseAssignmentNotification } = await import('../../queues/notificationQueue');
+      type CreatedTaskShape = {
+        id: string;
+        assigned_to?: string | null;
+        assignedTo?: string | null;
+        task_number?: string | null;
+        taskNumber?: string | null;
+        verification_type_id?: number | null;
+        verificationTypeId?: number | null;
+      };
+      const verificationTypeNameCache = new Map<number, string>();
+      for (const taskRow of taskCreationResult.createdTasks as CreatedTaskShape[]) {
+        const assignedTo = taskRow.assignedTo || taskRow.assigned_to;
+        if (!assignedTo) {
+          continue;
+        }
+        const taskNumber = taskRow.taskNumber || taskRow.task_number || undefined;
+        const taskVerificationTypeId = taskRow.verificationTypeId ?? taskRow.verification_type_id;
+        let verificationType = 'Unknown';
+        if (taskVerificationTypeId != null) {
+          const cached = verificationTypeNameCache.get(taskVerificationTypeId);
+          if (cached !== undefined) {
+            verificationType = cached;
+          } else {
+            const vtResult = await client.query(
+              'SELECT name FROM verification_types WHERE id = $1',
+              [taskVerificationTypeId]
+            );
+            verificationType = (vtResult.rows[0]?.name as string) || 'Unknown';
+            verificationTypeNameCache.set(taskVerificationTypeId, verificationType);
+          }
+        }
+        await queueCaseAssignmentNotification({
+          userId: assignedTo,
+          caseId: newCase.id,
+          caseNumber: String(newCase.caseId),
+          taskId: taskRow.id,
+          taskNumber: taskNumber || undefined,
+          customerName:
+            (newCase as { customerName?: string }).customerName ||
+            requestData.caseDetails?.customerName ||
+            '',
+          verificationType,
+          assignmentType: 'assignment',
+          assignedBy: userId,
+          reason: 'Case created with assigned task',
+        });
+      }
+
+      // Phase 1.2d: KYC tasks. Same queueing path — KYC tasks live in the
+      // `verification_tasks` table (task_type='KYC') and use the same
+      // `notifications.task_id` column. The KYC user (typically a backend
+      // role like KYC_VERIFIER) gets a `CASE_ASSIGNED` notification for
+      // the (case_id, kyc_task_id) pair, mirroring the field-user flow.
+      // verification_type is the document type (e.g. AADHAR_CARD) so the
+      // notification message reads coherently.
+      for (const kyc of kycTasksCreated) {
+        await queueCaseAssignmentNotification({
+          userId: kyc.assignedTo,
+          caseId: newCase.id,
+          caseNumber: String(newCase.caseId),
+          taskId: kyc.id,
+          taskNumber: kyc.taskNumber || undefined,
+          customerName:
+            (newCase as { customerName?: string }).customerName ||
+            requestData.caseDetails?.customerName ||
+            '',
+          verificationType: `KYC: ${kyc.documentType.replace(/_/g, ' ')}`,
+          assignmentType: 'assignment',
+          assignedBy: userId,
+          reason: 'KYC document task created and assigned',
+        });
+      }
+    } catch (notifError) {
+      logger.error('Failed to queue case-assignment notifications (non-fatal):', notifError);
+    }
+
+    // T0-7 (audit 2026-05-17): DPDP §11 audit trail on case PII create.
+    void createAuditLog({
+      action: 'CASE_CREATED',
+      entityType: 'CASE',
+      entityId: String(newCase.id),
+      userId,
+      details: {
+        caseId: newCase.caseId,
+        clientId: resolvedClientId,
+        productId: resolvedProductId,
+        priority: newCase.priority,
+        applicantsCount: applicantsData.length,
+        tasksCount: taskCreationResult.createdTasks?.length || 0,
+        kycTasksCount: kycTasksCreated.length,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
+    // ========== RESPONSE ==========
+    // Phase 1.5 (2026-05-04): expose `kycTasks` so frontend can fan out
+    // per-doc file uploads (`POST /api/kyc/tasks/:id/upload`) after case
+    // creation succeeds. Mirrors the field-task attachment fan-out
+    // pattern. Without this, KYC files selected in the case-creation
+    // form never reach the server — `kyc_document_verifications.
+    // document_file_path` stays NULL and the verifier sees "No
+    // document uploaded yet".
+    res.status(201).json({
+      success: true,
+      message: `Case created successfully with ${applicantsData.length} applicant(s)`,
+      data: {
+        case: {
+          id: newCase.id,
+          caseId: newCase.caseId,
+          status: newCase.status,
+          priority: newCase.priority,
+          createdAt: newCase.createdAt,
+        },
+        hierarchy: createdHierarchy,
+        tasks: taskCreationResult.createdTasks,
+        kycTasks: kycTasksCreated.map(k => ({
+          id: k.id,
+          taskNumber: k.taskNumber,
+          assignedTo: k.assignedTo,
+          documentType: k.documentType,
+        })),
+      },
+    });
+  } catch (error: unknown) {
+    // Rollback transaction
+    try {
+      if (client) {
+        await client.query('ROLLBACK');
+      }
+    } catch (rollbackError) {
+      logger.error('Rollback failed:', rollbackError);
+    }
+
+    // Cleanup uploaded files
+    await cleanupFiles();
+
+    const executionTime = Date.now() - startTime;
+
+    // Categorize errors for better handling
+    const err = error as DatabaseError;
+    const errorCode = err.code;
+    const errorMessage = err.message || 'Unknown error';
+
+    // Log detailed error information
+    logger.error('Case creation failed:', {
+      error: errorMessage,
+      code: errorCode,
+      constraint: err.constraint,
+      detail: err.detail,
+      userId: req.user?.id,
+      executionTime,
+      stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
+    });
+
+    // Handle verification task creation structured errors
+    if (error instanceof VerificationTaskCreationError) {
+      return res.status(error.status).json(error.responseBody);
+    }
+
+    // Handle specific database errors
+    if (errorCode === '23505') {
+      // Unique constraint violation
+      return res.status(409).json({
+        success: false,
+        message: 'Duplicate entry detected',
+        error: {
+          code: 'DUPLICATE_ENTRY',
+          constraint: err.constraint,
+          detail: err.detail,
+        },
+      });
+    }
+
+    if (errorCode === '23503') {
+      // Foreign key violation
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reference to related entity',
+        error: {
+          code: 'FOREIGN_KEY_VIOLATION',
+          constraint: err.constraint,
+          detail: err.detail,
+        },
+      });
+    }
+
+    if (errorCode === '23502') {
+      // Not null violation
+      return res.status(400).json({
+        success: false,
+        message: `Required field missing: ${err.column || 'unknown'}`,
+        error: {
+          code: 'NULL_VIOLATION',
+          column: err.column,
+          detail: err.detail,
+        },
+      });
+    }
+
+    if (errorCode === '57014') {
+      // Query timeout
+      return res.status(504).json({
+        success: false,
+        message: 'Request timeout. Please try again with fewer tasks or smaller files.',
+        error: {
+          code: 'QUERY_TIMEOUT',
+          executionTime,
+        },
+      });
+    }
+
+    if (errorCode === '53300' || errorCode === '53400') {
+      // Too many connections or out of memory
+      return res.status(503).json({
+        success: false,
+        message: 'Service temporarily unavailable. Please try again in a moment.',
+        error: {
+          code: 'SERVICE_OVERLOADED',
+        },
+      });
+    }
+
+    if (errorCode === 'ECONNREFUSED' || errorCode === 'ENOTFOUND') {
+      // Database connection error
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection error. Please try again.',
+        error: {
+          code: 'DB_CONNECTION_ERROR',
+        },
+      });
+    }
+
+    if (errorCode === 'VALIDATION_ERROR') {
+      return res.status(400).json({
+        success: false,
+        message: errorMessage,
+        error: {
+          code: 'VALIDATION_ERROR',
+        },
+      });
+    }
+
+    // Generic error response
+    return res.status(500).json({
+      success: false,
+      message:
+        process.env.NODE_ENV === 'production'
+          ? 'Failed to create case. Please try again.'
+          : errorMessage,
+      error: {
+        code: 'INTERNAL_ERROR',
+        ...(process.env.NODE_ENV !== 'production' && {
+          detail: err.detail,
+          hint: err.hint,
+          stack: err.stack,
+        }),
+      },
+    });
+  } finally {
+    // Always release the database connection
+    if (client) {
+      try {
+        client.release();
+        const executionTime = Date.now() - startTime;
+        logger.info('Case creation request completed', {
+          userId: req.user?.id,
+          executionTime,
+          success: res.statusCode < 400,
+        });
+      } catch (releaseError) {
+        logger.error('Failed to release database connection:', releaseError);
+      }
+    }
+  }
+};
