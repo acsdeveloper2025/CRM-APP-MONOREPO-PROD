@@ -6,11 +6,7 @@ import { query, withTransaction } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
-import {
-  resolveDataScope,
-  valueAllowedByScope,
-  appendOperationalScopeConditions,
-} from '@/security/dataScope';
+import { resolveDataScope, appendOperationalScopeConditions } from '@/security/dataScope';
 import { financialConfigurationValidator } from '@/services/financialConfigurationValidator';
 import { resolveInvoiceGst, GstConfigError } from '@/services/gstResolver';
 import { createAuditLog } from '@/utils/auditLogger';
@@ -21,10 +17,24 @@ import {
   STATUS,
   toNumber,
   toMaybeNumber,
-  parseInvoiceClientId,
   parseStringArray,
   getSingleParam,
 } from './invoices/utils';
+import type {
+  Invoice,
+  InvoiceItem,
+  InvoiceListRow,
+  InvoiceItemRow,
+  InvoiceTaskCandidateRow,
+  InvoiceKycTaskCandidateRow,
+  CreateInvoiceBody,
+} from './invoices/types';
+import {
+  parseCaseIdsFromItems,
+  invoiceAllowedByScope,
+  normalizeInvoiceForResponse,
+  buildScopeSql,
+} from './invoices/helpers';
 
 // Single 2dp rounder shared with gstResolver for arithmetic parity.
 // NEW-MED-1 (AUDIT 2026-05-16): Math.round(n*100)/100 is FP-unsafe — e.g.
@@ -33,226 +43,6 @@ import {
 // picks the intended side. Off-by-0.01 invoice lines accumulate to CA
 // reconciliation tickets over time; this is GST-relevant precision.
 const round2 = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 100;
-
-interface InvoiceItem {
-  id: string;
-  invoiceId?: string;
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  amount: number;
-  totalPrice?: number;
-  caseIds: string[];
-}
-
-interface Invoice {
-  id: string;
-  invoiceNumber: string;
-  clientId: string;
-  clientName: string;
-  client?: {
-    id: string;
-    name: string;
-    code: string;
-    email?: string;
-    phone?: string;
-  };
-  amount: number;
-  subtotalAmount?: number;
-  currency: string;
-  status: string;
-  dueDate: string;
-  issueDate: string;
-  paidDate: string | null;
-  items: InvoiceItem[];
-  taxAmount: number;
-  totalAmount: number;
-  notes: string;
-  createdAt: string;
-  updatedAt: string;
-  paymentMethod?: string;
-  transactionId?: string;
-  // GST breakdown (NULL for legacy pre-2026-05-12 invoices).
-  supplyType?: 'INTRA_STATE' | 'INTER_STATE' | 'EXPORT' | null;
-  placeOfSupply?: string | null;
-  cgstRate?: number | null;
-  cgstAmount?: number | null;
-  sgstRate?: number | null;
-  sgstAmount?: number | null;
-  igstRate?: number | null;
-  igstAmount?: number | null;
-}
-
-type InvoiceListRow = {
-  id: number;
-  invoiceNumber: string;
-  clientId: number;
-  productId: number | null;
-  clientName: string;
-  amount: string;
-  subtotalAmount: string;
-  taxAmount: string;
-  totalAmount: string;
-  currency: string;
-  status: string;
-  issueDate: string;
-  dueDate: string;
-  paidDate: string | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-  paymentMethod: string | null;
-  transactionId: string | null;
-  clientCode: string | null;
-  clientEmail: string | null;
-  clientPhone: string | null;
-  supplyType: string | null;
-  placeOfSupply: string | null;
-  cgstRate: string | null;
-  cgstAmount: string | null;
-  sgstRate: string | null;
-  sgstAmount: string | null;
-  igstRate: string | null;
-  igstAmount: string | null;
-};
-
-type InvoiceItemRow = {
-  id: number;
-  invoiceId: number;
-  description: string;
-  quantity: number;
-  unitPrice: string;
-  amount: string;
-  caseIds: string[] | null;
-};
-
-type InvoiceTaskCandidateRow = {
-  id: string;
-  caseId: string;
-  verificationTypeId: number | null;
-  rateTypeId: number | null;
-  actualAmount: string | null;
-  estimatedAmount: string | null;
-  areaId: number | null;
-  taskTitle: string | null;
-  taskType: 'NORMAL' | 'REVISIT' | 'KYC' | null;
-  pincodeId: number | null;
-  clientId: number;
-  productId: number;
-};
-
-type CreateInvoiceBody = {
-  clientId?: string | number;
-  clientName?: string;
-  items?: Array<{
-    description?: string;
-    quantity?: number;
-    unitPrice?: number;
-    caseId?: string;
-    caseIds?: string[];
-  }>;
-  dueDate?: string;
-  notes?: string;
-  currency?: string;
-  taskIds?: string[];
-  billingPeriodFrom?: string;
-  billingPeriodTo?: string;
-  productId?: string | number;
-};
-
-const parseCaseIdsFromItems = (items: CreateInvoiceBody['items']): string[] => {
-  if (!Array.isArray(items)) {
-    return [];
-  }
-
-  const values = new Set<string>();
-  items.forEach(item => {
-    if (item?.caseId) {
-      values.add(String(item.caseId));
-    }
-    if (Array.isArray(item?.caseIds)) {
-      item.caseIds.forEach(caseId => {
-        if (caseId) {
-          values.add(String(caseId));
-        }
-      });
-    }
-  });
-
-  return [...values];
-};
-
-const invoiceAllowedByScope = (
-  invoice: { clientId: string; productId?: number | null },
-  scope: Awaited<ReturnType<typeof resolveDataScope>>
-): boolean =>
-  valueAllowedByScope(
-    {
-      clientId: parseInvoiceClientId(invoice.clientId),
-      productId: invoice.productId ?? null,
-    },
-    scope
-  );
-
-const toDisplayStatus = (status: string, dueDate: string, paidDate: string | null): string => {
-  if (status === STATUS.CANCELLED) {
-    return status;
-  }
-  if (!paidDate && dueDate && new Date(dueDate).getTime() < Date.now() && status !== STATUS.DRAFT) {
-    return STATUS.OVERDUE;
-  }
-  return status;
-};
-
-const normalizeInvoiceForResponse = (
-  invoice: Invoice & { productId?: number | null }
-): Invoice & { productId?: number | null } => ({
-  ...invoice,
-  subtotalAmount: invoice.subtotalAmount ?? invoice.amount,
-  status: toDisplayStatus(invoice.status, invoice.dueDate, invoice.paidDate),
-  client:
-    invoice.client ||
-    (invoice.clientName
-      ? {
-          id: invoice.clientId,
-          name: invoice.clientName,
-          code: String(invoice.clientId),
-        }
-      : undefined),
-  items: invoice.items.map(item => ({
-    ...item,
-    invoiceId: item.invoiceId ?? invoice.id,
-    totalPrice: item.totalPrice ?? item.amount,
-  })),
-});
-
-const buildScopeSql = (
-  scope: Awaited<ReturnType<typeof resolveDataScope>>,
-  conditions: string[],
-  params: Array<string | number | number[]>
-) => {
-  if (!scope.restricted) {
-    return;
-  }
-
-  if (scope.assignedClientIds) {
-    if (scope.assignedClientIds.length === 0) {
-      conditions.push('1 = 0');
-    } else {
-      params.push(scope.assignedClientIds);
-      conditions.push(`i.client_id = ANY($${params.length}::int[])`);
-    }
-  }
-
-  if (scope.assignedProductIds) {
-    if (scope.assignedProductIds.length === 0) {
-      conditions.push('1 = 0');
-    } else {
-      params.push(scope.assignedProductIds);
-      conditions.push(`(i.product_id IS NULL OR i.product_id = ANY($${params.length}::int[]))`);
-    }
-  }
-};
 
 const loadInvoiceItems = async (invoiceIds: number[]): Promise<Map<number, InvoiceItem[]>> => {
   if (invoiceIds.length === 0) {
@@ -867,19 +657,6 @@ const loadCompletedUnbilledTasks = async (
 // joined to kyc_document_verifications + document_types for description.
 // Billing amount is the FROZEN snapshot from verification_tasks.estimated_amount
 // (populated at case-create from kyc_rates per business rule).
-type InvoiceKycTaskCandidateRow = {
-  id: string;
-  caseId: string;
-  taskTitle: string | null;
-  estimatedAmount: string | null;
-  actualAmount: string | null;
-  documentTypeId: number | null;
-  documentTypeName: string | null;
-  documentTypeCode: string | null;
-  clientId: number;
-  productId: number;
-};
-
 const loadCompletedUnbilledKycTasks = async (
   client: PoolClient,
   scope: Awaited<ReturnType<typeof resolveDataScope>>,
