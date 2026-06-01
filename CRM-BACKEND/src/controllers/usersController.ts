@@ -20,6 +20,7 @@ import { getScopedOperationalUserIds } from '@/security/userScope';
 import { isOperationsEligibleUser, loadUserCapabilityProfile } from '@/security/userCapabilities';
 import { createAuditLog } from '@/utils/auditLogger';
 import { escapeFormulaRow } from '@/utils/formulaGuard';
+import { buildUsersWhereClause } from './users/queryBuilder';
 
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
@@ -286,80 +287,7 @@ const SESSION_SORT_MAP: Record<string, string> = {
 // + exportUsers + getUserStats (when scoped). Assumes the calling query
 // JOINs `departments d ON u.department_id = d.id` (so the `d.name`
 // predicate resolves). Always excludes soft-deleted users.
-const buildUsersWhereClause = (
-  req: AuthenticatedRequest
-): { whereClause: string; queryParams: (string | number | boolean)[]; nextParamIndex: number } => {
-  const { role, department, isActive, search, consentStatus, createdFrom, createdTo } = req.query;
-  const conditions: string[] = ['u.deleted_at IS NULL'];
-  const params: (string | number | boolean)[] = [];
-  let paramIndex = 1;
-
-  if (role && typeof role === 'string') {
-    conditions.push(`EXISTS (
-      SELECT 1
-      FROM user_roles urf
-      JOIN roles_v2 rvf ON rvf.id = urf.role_id
-      WHERE urf.user_id = u.id AND rvf.name = $${paramIndex}
-    )`);
-    params.push(role);
-    paramIndex++;
-  }
-
-  if (department && typeof department === 'string') {
-    conditions.push(`d.name ILIKE $${paramIndex}`);
-    params.push(`%${department}%`);
-    paramIndex++;
-  }
-
-  // 'all' (or undefined) → no filter; 'true'/'false' string OR coerced
-  // boolean → flip is_active branch. Never `if (isActive !== undefined)`
-  // alone — that silently treats 'all' as false (§9.7 don't-regress).
-  if (typeof isActive === 'boolean') {
-    conditions.push(`u.is_active = $${paramIndex}`);
-    params.push(isActive);
-    paramIndex++;
-  } else if (isActive === 'true' || isActive === 'false') {
-    conditions.push(`u.is_active = $${paramIndex}`);
-    params.push(isActive === 'true');
-    paramIndex++;
-  }
-
-  if (search && typeof search === 'string') {
-    conditions.push(`(
-      COALESCE(u.name, '') ILIKE $${paramIndex} OR
-      COALESCE(u.email, '') ILIKE $${paramIndex} OR
-      COALESCE(u.username, '') ILIKE $${paramIndex} OR
-      COALESCE(u.employee_id, '') ILIKE $${paramIndex}
-    )`);
-    params.push(`%${search}%`);
-    paramIndex++;
-  }
-
-  // Field Executive Acknowledgement filter (2026-05-13): 'accepted' = at
-  // least one row in user_consents for this user; 'pending' = zero rows.
-  if (consentStatus === 'accepted') {
-    conditions.push(`EXISTS (SELECT 1 FROM user_consents uc WHERE uc.user_id = u.id)`);
-  } else if (consentStatus === 'pending') {
-    conditions.push(`NOT EXISTS (SELECT 1 FROM user_consents uc WHERE uc.user_id = u.id)`);
-  }
-
-  if (typeof createdFrom === 'string' && createdFrom) {
-    conditions.push(`u.created_at >= $${paramIndex}`);
-    params.push(createdFrom);
-    paramIndex++;
-  }
-  if (typeof createdTo === 'string' && createdTo) {
-    conditions.push(`u.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
-    params.push(createdTo);
-    paramIndex++;
-  }
-
-  return {
-    whereClause: `WHERE ${conditions.join(' AND ')}`,
-    queryParams: params,
-    nextParamIndex: paramIndex,
-  };
-};
+// Users list/export WHERE-builder lives in ./users/queryBuilder (imported at top).
 
 // GET /api/users - List users with pagination and filters
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
