@@ -10,17 +10,17 @@ import { invalidateProductScopeCache } from '@/middleware/productAccess';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
 import ExcelJS from 'exceljs';
 import { CANONICAL_RBAC_ROLE_NAMES, normalizeRbacRoleName } from '@/constants/rbacRoles';
-import {
-  deriveCapabilitiesFromPermissionCodes,
-  hasSystemScopeBypass,
-  userHasAnyPermission,
-  userHasPermission,
-} from '@/security/rbacAccess';
-import { getScopedOperationalUserIds } from '@/security/userScope';
+import { deriveCapabilitiesFromPermissionCodes, hasSystemScopeBypass } from '@/security/rbacAccess';
 import { isOperationsEligibleUser, loadUserCapabilityProfile } from '@/security/userCapabilities';
 import { createAuditLog } from '@/utils/auditLogger';
 import { escapeFormulaRow } from '@/utils/formulaGuard';
-import { buildUsersWhereClause } from './users/queryBuilder';
+import {
+  ACTIVITY_SORT_MAP,
+  SESSION_SORT_MAP,
+  buildUserActivitiesWhereClause,
+  buildUsersWhereClause,
+  buildUserSessionsWhereClause,
+} from './users/queryBuilder';
 
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
@@ -270,18 +270,7 @@ const validateHierarchyAssignments = async (
 // Pagination is intentionally absent on export; rows are hard-capped here.
 const USER_EXPORT_ROW_LIMIT = 10000;
 
-// SORT maps mirror FE SORT_OPTIONS values. Adding a new sort key requires
-// updating BOTH the map AND the route validator AND the FE SORT_OPTIONS.
-const ACTIVITY_SORT_MAP: Record<string, string> = {
-  createdAt: 'al.created_at',
-  action: 'al.action',
-  entityType: 'al.entity_type',
-};
-const SESSION_SORT_MAP: Record<string, string> = {
-  createdAt: 'rt.created_at',
-  expiresAt: 'rt.expires_at',
-  ipAddress: 'rt.ip_address',
-};
+// ACTIVITY_SORT_MAP + SESSION_SORT_MAP moved to ./users/queryBuilder.
 
 // Shared WHERE-clause builder. SINGLE source of WHERE-truth for getUsers
 // + exportUsers + getUserStats (when scoped). Assumes the calling query
@@ -1626,74 +1615,6 @@ export const getDesignations = async (req: AuthenticatedRequest, res: Response) 
 // Shared WHERE-clause builder for user activities (audit_logs). SINGLE
 // source of WHERE-truth for list + stats + export. Resolves the
 // hierarchy-scope filter so a TEAM_LEADER sees own + subordinates only.
-const buildUserActivitiesWhereClause = async (
-  req: AuthenticatedRequest
-): Promise<{
-  whereClause: string;
-  queryParams: (string | number | string[])[];
-  nextParamIndex: number;
-}> => {
-  const { search, userId, action, createdFrom, createdTo } = req.query;
-  const canViewAllActivities =
-    hasSystemScopeBypass(req.user) ||
-    userHasPermission(req.user, 'permission.manage') ||
-    userHasPermission(req.user, 'role.manage');
-
-  const conditions: string[] = [];
-  const params: (string | number | string[])[] = [];
-  let paramIndex = 1;
-
-  if (canViewAllActivities) {
-    if (userId && typeof userId === 'string') {
-      conditions.push(`al.user_id = $${paramIndex}`);
-      params.push(userId);
-      paramIndex++;
-    }
-  } else {
-    const hierarchyUserIds = req.user?.id
-      ? await getScopedOperationalUserIds(req.user.id)
-      : undefined;
-
-    if (hierarchyUserIds && hierarchyUserIds.length > 0) {
-      conditions.push(`al.user_id = ANY($${paramIndex}::uuid[])`);
-      params.push(hierarchyUserIds);
-      paramIndex++;
-    } else if (req.user?.id) {
-      conditions.push(`al.user_id = $${paramIndex}`);
-      params.push(req.user.id);
-      paramIndex++;
-    }
-  }
-
-  if (search && typeof search === 'string') {
-    conditions.push(`(al.action ILIKE $${paramIndex} OR al.details::text ILIKE $${paramIndex})`);
-    params.push(`%${search}%`);
-    paramIndex++;
-  }
-
-  if (action && typeof action === 'string') {
-    conditions.push(`al.action = $${paramIndex}`);
-    params.push(action);
-    paramIndex++;
-  }
-
-  if (typeof createdFrom === 'string' && createdFrom) {
-    conditions.push(`al.created_at >= $${paramIndex}`);
-    params.push(createdFrom);
-    paramIndex++;
-  }
-  if (typeof createdTo === 'string' && createdTo) {
-    conditions.push(`al.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
-    params.push(createdTo);
-    paramIndex++;
-  }
-
-  return {
-    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
-    queryParams: params,
-    nextParamIndex: paramIndex,
-  };
-};
 
 export const getUserActivities = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -1897,58 +1818,6 @@ export const exportUserActivities = async (req: AuthenticatedRequest, res: Respo
 
 // Shared WHERE-clause builder for user sessions (refresh_tokens).
 // Computes is_active inline (`rt.expires_at > NOW() AND rt.revoked_at IS NULL`).
-const buildUserSessionsWhereClause = (
-  req: AuthenticatedRequest
-): { whereClause: string; queryParams: (string | number)[]; nextParamIndex: number } => {
-  const { userId, isActive, search, createdFrom, createdTo } = req.query;
-  const canViewOtherSessions =
-    hasSystemScopeBypass(req.user) ||
-    userHasAnyPermission(req.user, ['user.update', 'territory.assign']);
-  const targetUserId = canViewOtherSessions ? (userId as string | undefined) : req.user?.id;
-
-  const conditions: string[] = [];
-  const params: (string | number)[] = [];
-  let paramIndex = 1;
-
-  if (targetUserId) {
-    conditions.push(`rt.user_id = $${paramIndex}`);
-    params.push(targetUserId);
-    paramIndex++;
-  }
-
-  // 'all' (or undefined) → no filter; 'true' → active (not expired AND not
-  // revoked); 'false' → expired OR revoked.
-  if (isActive === 'true') {
-    conditions.push(`(rt.expires_at > CURRENT_TIMESTAMP AND rt.revoked_at IS NULL)`);
-  } else if (isActive === 'false') {
-    conditions.push(`(rt.expires_at <= CURRENT_TIMESTAMP OR rt.revoked_at IS NOT NULL)`);
-  }
-
-  if (search && typeof search === 'string') {
-    conditions.push(
-      `(COALESCE(u.name, '') ILIKE $${paramIndex} OR COALESCE(u.username, '') ILIKE $${paramIndex} OR COALESCE(rt.ip_address, '') ILIKE $${paramIndex})`
-    );
-    params.push(`%${search}%`);
-    paramIndex++;
-  }
-
-  if (typeof createdFrom === 'string' && createdFrom) {
-    conditions.push(`rt.created_at >= $${paramIndex}`);
-    params.push(createdFrom);
-    paramIndex++;
-  }
-  if (typeof createdTo === 'string' && createdTo) {
-    conditions.push(`rt.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
-    params.push(createdTo);
-    paramIndex++;
-  }
-
-  return {
-    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
-    queryParams: params,
-    nextParamIndex: paramIndex,
-  };
-};
 
 // GET /api/users/sessions - Get user refresh token sessions
 export const getUserSessions = async (req: AuthenticatedRequest, res: Response) => {
