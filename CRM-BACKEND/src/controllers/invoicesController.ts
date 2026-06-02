@@ -289,9 +289,22 @@ const loadCompletedUnbilledKycTasks = async (
        vt.task_title,
        vt.estimated_amount::text,
        vt.actual_amount::text,
-       kdv.document_type_id,
-       dt.name as document_type_name,
-       dt.code as document_type_code,
+       -- Document label via correlated subqueries (earliest live doc) so the
+       -- result is EXACTLY one row per cycle. A LEFT JOIN to
+       -- kyc_document_verifications would fan a cycle out by its document count,
+       -- producing duplicate invoice lines / a uq_iit_kyc_cycle violation if a
+       -- task ever carries >1 document. The billing WHERE uses only cyc/ca.
+       (SELECT kdv.document_type_id FROM kyc_document_verifications kdv
+          WHERE kdv.verification_task_id = cyc.verification_task_id AND kdv.deleted_at IS NULL
+          ORDER BY kdv.created_at ASC LIMIT 1) as document_type_id,
+       (SELECT dt.name FROM kyc_document_verifications kdv
+          JOIN document_types dt ON dt.id = kdv.document_type_id
+          WHERE kdv.verification_task_id = cyc.verification_task_id AND kdv.deleted_at IS NULL
+          ORDER BY kdv.created_at ASC LIMIT 1) as document_type_name,
+       (SELECT dt.code FROM kyc_document_verifications kdv
+          JOIN document_types dt ON dt.id = kdv.document_type_id
+          WHERE kdv.verification_task_id = cyc.verification_task_id AND kdv.deleted_at IS NULL
+          ORDER BY kdv.created_at ASC LIMIT 1) as document_type_code,
        ca.client_id as client_id,
        ca.product_id as product_id,
        cyc.id as cycle_id,
@@ -300,9 +313,6 @@ const loadCompletedUnbilledKycTasks = async (
      FROM kyc_verification_cycles cyc
      JOIN verification_tasks vt ON vt.id = cyc.verification_task_id
      JOIN cases ca ON ca.id = cyc.case_id
-     LEFT JOIN kyc_document_verifications kdv
-       ON kdv.verification_task_id = cyc.verification_task_id AND kdv.deleted_at IS NULL
-     LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
      WHERE ${conditions.join(' AND ')}
      ORDER BY COALESCE(cyc.completed_at, cyc.created_at) ASC`,
     params

@@ -619,7 +619,17 @@ export const getKycMis = async (req: AuthenticatedRequest, res: Response) => {
        FROM kyc_verification_cycles cyc
        JOIN cases c ON c.id = cyc.case_id
        JOIN verification_tasks vt ON vt.id = cyc.verification_task_id
-       JOIN kyc_document_verifications kdv ON kdv.verification_task_id = cyc.verification_task_id
+       -- LATERAL LIMIT 1: exactly one kdv per cycle so cycle COUNTs and
+       -- SUM(rate_amount) are never multiplied by a task's document count.
+       -- (Today 1 doc : 1 task, but this keeps revenue metrics correct if that
+       -- ever changes.) The scope WHERE still references kdv.* columns.
+       JOIN LATERAL (
+         SELECT kdv.* FROM kyc_document_verifications kdv
+          WHERE kdv.verification_task_id = cyc.verification_task_id
+            AND kdv.deleted_at IS NULL
+          ORDER BY kdv.created_at ASC
+          LIMIT 1
+       ) kdv ON true
        ${whereClause}`,
       baseWhere.baseParams
     );
@@ -754,9 +764,13 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
       // entirely or (b) overwrite a recorded final_status on a COMPLETED
       // row, breaking the audit trail. IN_PROGRESS is the only valid state
       // for verify.
+      // FOR UPDATE: serialize concurrent verify calls on the same document so a
+      // double-submit can't both pass the IN_PROGRESS gate and double-fire the
+      // completion side effects (snapshotFinancials, cycle snapshot, audit,
+      // post-completion hooks). Matches start/revoke/recheck/reverify.
       const statusCheck = await client.query<{ verificationStatus: string }>(
         `SELECT verification_status FROM kyc_document_verifications
-         WHERE id = $1 AND deleted_at IS NULL`,
+         WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
         [taskId]
       );
       if (statusCheck.rows.length === 0) {
