@@ -158,15 +158,40 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
   {
-    // 2026-06-02: collapsed to a SINGLE KYC page (no per-status sub-tabs).
-    // The in-page Status filter covers status slicing; the dashboard cards
-    // surface the Pending / Completed counts.
+    // 2026-06-02: two user-facing states (Pending / Completed) + All. The
+    // per-status pages reuse KYCDashboardPage with a defaultStatus prop.
     id: 'kyc-verification',
     label: 'KYC Verification',
     href: '/kyc-verification/all-kyc',
     icon: FileCheck,
     permissionCode: 'page.kyc',
     permission: { resource: 'kyc', action: 'read' },
+    children: [
+      {
+        id: 'kyc-pending',
+        label: 'Pending KYC',
+        href: '/kyc-verification/pending-kyc',
+        icon: Clock,
+        permissionCode: 'page.kyc',
+        permission: { resource: 'kyc', action: 'read' },
+      },
+      {
+        id: 'kyc-completed',
+        label: 'Completed KYC',
+        href: '/kyc-verification/completed-kyc',
+        icon: CheckSquare,
+        permissionCode: 'page.kyc',
+        permission: { resource: 'kyc', action: 'read' },
+      },
+      {
+        id: 'kyc-all',
+        label: 'All KYC',
+        href: '/kyc-verification/all-kyc',
+        icon: List,
+        permissionCode: 'page.kyc',
+        permission: { resource: 'kyc', action: 'read' },
+      },
+    ],
   },
   {
     id: 'data-entry-management',

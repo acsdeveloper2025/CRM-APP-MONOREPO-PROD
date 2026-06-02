@@ -187,6 +187,27 @@ export const useUploadKYCDocument = () => {
   });
 };
 
+// P3 (2026-06-02): Recheck-clone — new editable Pending task from a completed one.
+export const useRecheckCloneKYC = () => {
+  return useMutationWithInvalidation({
+    mutationFn: ({
+      taskId,
+      payload,
+    }: {
+      taskId: string;
+      payload: {
+        documentTypeId?: number;
+        documentNumber?: string;
+        documentHolderName?: string;
+        documentDetails?: Record<string, string>;
+        assignedTo: string;
+      };
+    }) => kycService.recheckClone(taskId, payload),
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Recheck',
+  });
+};
+
 // P2 (2026-06-02): attach the completion report file to the active cycle.
 export const useUploadKYCReport = () => {
   return useMutationWithInvalidation({
