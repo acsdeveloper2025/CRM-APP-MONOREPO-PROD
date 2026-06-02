@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -141,17 +141,22 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const { mutateAsync: reverifyKyc, isPending: isReverifying } = useReverifyKYCTask();
   // KYC Verifier read-only model (2026-06-02): action controls are permission-
   // gated. The read-only verifier (none of these) sees only View + navigation.
+  // NOTE: each usePermission() is a hook (reads auth context) — call them all
+  // UNCONDITIONALLY and combine with plain booleans. Never chain hook calls with
+  // `||` (short-circuit would skip hook calls → Rules-of-Hooks violation/crash).
   const canComplete = usePermission('kyc.complete');
   const canReverifyPerm = usePermission('kyc.reverify');
   const canRevokePerm = usePermission('kyc.revoke');
   const canRecheckPerm = usePermission('kyc.recheck');
-  const canAssignPerm =
-    usePermission('kyc.assign') ||
-    usePermission('case.create') ||
-    usePermission('case.assign') ||
-    usePermission('case.reassign');
+  const canAssignKyc = usePermission('kyc.assign');
+  const canCaseCreate = usePermission('case.create');
+  const canCaseAssign = usePermission('case.assign');
+  const canCaseReassign = usePermission('case.reassign');
+  const canAssignPerm = canAssignKyc || canCaseCreate || canCaseAssign || canCaseReassign;
   // P5/P6: KYC MIS (cycle-based) — only for report/analytics viewers.
-  const canViewMis = usePermission('report.generate') || usePermission('analytics.view');
+  const canReportGenerate = usePermission('report.generate');
+  const canAnalyticsView = usePermission('analytics.view');
+  const canViewMis = canReportGenerate || canAnalyticsView;
   const { data: mis } = useKYCMis(canViewMis);
   const [revokeTask, setRevokeTask] = useState<{ id: string; taskNumber: string } | null>(null);
   const [revokeReasonCode, setRevokeReasonCode] = useState<string>('');
