@@ -14,6 +14,7 @@ import {
   verifyKYCDocument,
   assignKYCTask,
   uploadKYCDocument,
+  uploadKYCReport,
   getKYCTasksForCase,
   exportKYCToExcel,
   startKYCTask,
@@ -145,6 +146,16 @@ router.post(
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   upload.single('document'),
   uploadKYCDocument
+);
+
+// P2 (2026-06-02): attach the completion report file (source's reply) to the
+// active reverification cycle. Only the executor (kyc.complete) can attach it.
+router.post(
+  '/tasks/:taskId/report',
+  authorize('kyc.complete'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
+  upload.single('report'),
+  uploadKYCReport
 );
 
 // F9.1 (2026-05-26): KYC state-transition endpoints (parity with field tasks).

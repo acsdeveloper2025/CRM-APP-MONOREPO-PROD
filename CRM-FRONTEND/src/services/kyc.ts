@@ -208,6 +208,14 @@ class KYCService {
     return apiService.post(`/kyc/tasks/${taskId}/upload`, formData);
   }
 
+  // P2 (2026-06-02): attach the completion report file (source's reply) to the
+  // active reverification cycle. Uploaded just before /verify on completion.
+  async uploadReport(taskId: string, file: File): Promise<ApiResponse<{ filePath: string }>> {
+    const formData = new FormData();
+    formData.append('report', file);
+    return apiService.post(`/kyc/tasks/${taskId}/report`, formData);
+  }
+
   async getTasksForCase(caseId: string): Promise<ApiResponse<KYCTask[]>> {
     const response = await apiService.get<KYCTask[]>(`/kyc/cases/${caseId}/tasks`);
     if (response?.success && Array.isArray(response.data)) {
@@ -293,6 +301,10 @@ export interface KYCCycle {
   billed: boolean;
   report_received_at: string | null;
   created_at: string;
+  // P2 (2026-06-02): per-cycle completion report attachment.
+  report_file_path: string | null;
+  report_file_name: string | null;
+  report_uploaded_at: string | null;
 }
 
 // P5 (2026-06-02): KYC MIS metrics over the cycle table.

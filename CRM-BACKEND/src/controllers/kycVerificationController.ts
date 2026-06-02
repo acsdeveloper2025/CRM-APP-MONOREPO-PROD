@@ -1516,7 +1516,8 @@ export const listKycCycles = async (req: AuthenticatedRequest, res: Response) =>
     const result = await query(
       `SELECT c.cycle_number, c.status, c.assigned_verifier_id, au.name AS assigned_verifier_name,
               c.assigned_at, c.completed_by, cu.name AS completed_by_name, c.completed_at,
-              c.final_status, c.rate_amount, c.billable, c.billed, c.report_received_at, c.created_at
+              c.final_status, c.rate_amount, c.billable, c.billed, c.report_received_at, c.created_at,
+              c.report_file_path, c.report_file_name, c.report_uploaded_at
          FROM kyc_verification_cycles c
          JOIN kyc_document_verifications kdv ON kdv.verification_task_id = c.verification_task_id
          LEFT JOIN users au ON au.id = c.assigned_verifier_id
@@ -1622,6 +1623,100 @@ export const uploadKYCDocument = async (req: AuthenticatedRequest, res: Response
   } catch (error) {
     logger.error('Error uploading KYC document:', error);
     res.status(500).json({ success: false, message: 'Failed to upload document' });
+  }
+};
+
+// POST /api/kyc/tasks/:taskId/report
+// P2 (2026-06-02): attach the source's reply / report file to the ACTIVE
+// reverification cycle when completing a KYC document. Mirrors the document
+// upload storage path; writes report_* onto the latest cycle. Gated kyc.complete.
+export const uploadKYCReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const taskId = String(req.params.taskId || '');
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'File is required' });
+    }
+
+    const lookup = await query<{
+      id: string;
+      caseId: string;
+      verificationTaskId: string;
+      docCode: string | null;
+    }>(
+      `SELECT kdv.id,
+              kdv.case_id AS "caseId",
+              kdv.verification_task_id AS "verificationTaskId",
+              dt.code AS "docCode"
+         FROM kyc_document_verifications kdv
+         LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
+        WHERE (kdv.id = $1 OR kdv.verification_task_id = $1)
+          AND kdv.deleted_at IS NULL
+        LIMIT 1`,
+      [taskId]
+    );
+    if (lookup.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+    const kycRow = lookup.rows[0];
+    const allowed = await enforceBackendUserCaseScope(
+      req.user?.id,
+      req.user,
+      kycRow.caseId,
+      req.activeScope
+    );
+    if (!allowed) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+
+    // Ensure a cycle exists (legacy guard), then target the latest cycle.
+    await query(
+      `INSERT INTO kyc_verification_cycles
+         (verification_task_id, case_id, cycle_number, status, billable, billed)
+       SELECT $1, $2, 1, 'KYC_ASSIGNED', true, false
+       WHERE NOT EXISTS (SELECT 1 FROM kyc_verification_cycles WHERE verification_task_id = $1)`,
+      [kycRow.verificationTaskId, kycRow.caseId]
+    );
+
+    const ext = path.extname(file.originalname || file.filename || '').replace(/^\./, '') || 'bin';
+    const storageKey = StorageKeys.kycDocument(
+      kycRow.caseId,
+      `${kycRow.id}-report`,
+      kycRow.docCode || 'REPORT',
+      ext
+    );
+    const buffer = await fs.readFile(file.path);
+    const sha256Hash = crypto.createHash('sha256').update(buffer).digest('hex');
+    await storage.put(storageKey, buffer, file.mimetype);
+    const filePath = `/uploads/kyc/${file.filename}`;
+
+    const upd = await query<{ cycleNumber: number }>(
+      `UPDATE kyc_verification_cycles
+         SET report_file_path = $1, report_file_name = $2, report_storage_key = $3,
+             report_sha256 = $4, report_uploaded_at = CURRENT_TIMESTAMP, report_uploaded_by = $5,
+             updated_at = CURRENT_TIMESTAMP
+       WHERE verification_task_id = $6
+         AND cycle_number = (SELECT MAX(cycle_number) FROM kyc_verification_cycles WHERE verification_task_id = $6)
+       RETURNING cycle_number AS "cycleNumber"`,
+      [filePath, file.originalname, storageKey, sha256Hash, req.user!.id, kycRow.verificationTaskId]
+    );
+
+    await createAuditLog({
+      userId: req.user!.id,
+      action: 'KYC_REPORT_ATTACHED',
+      entityType: 'KYC',
+      entityId: kycRow.id,
+      details: {
+        verificationTaskId: kycRow.verificationTaskId,
+        cycleNumber: upd.rows[0]?.cycleNumber,
+        fileName: file.originalname,
+      },
+    });
+
+    res.json({ success: true, message: 'Report attached', data: { filePath } });
+  } catch (error) {
+    logger.error('Error uploading KYC report:', error);
+    res.status(500).json({ success: false, message: 'Failed to upload report' });
   }
 };
 
