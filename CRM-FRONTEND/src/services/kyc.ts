@@ -100,6 +100,8 @@ export interface KYCTaskListQuery {
   dateTo?: string;
   /** F9.1: filter to rows that have been rechecked at least once. */
   recheckedOnly?: boolean;
+  /** Read-only KYC Verifier portal: restrict to docs assigned to this user. */
+  assignedTo?: string;
 }
 
 class KYCService {
