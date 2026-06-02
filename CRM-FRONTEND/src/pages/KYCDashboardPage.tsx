@@ -44,7 +44,6 @@ import {
   useAssignKYCTask,
   useStartKYCTask,
   useRevokeKYCTask,
-  useRecheckKYCTask,
   useReverifyKYCTask,
   useKYCMis,
 } from '@/hooks/useKYC';
@@ -137,7 +136,6 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   // F9.1: KYC state-transition state + mutations
   const { mutateAsync: startKyc, isPending: isStarting } = useStartKYCTask();
   const { mutateAsync: revokeKyc, isPending: isRevoking } = useRevokeKYCTask();
-  const { mutateAsync: recheckKyc, isPending: isRechecking } = useRecheckKYCTask();
   const { mutateAsync: reverifyKyc, isPending: isReverifying } = useReverifyKYCTask();
   // KYC Verifier read-only model (2026-06-02): action controls are permission-
   // gated. The read-only verifier (none of these) sees only View + navigation.
@@ -147,7 +145,6 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const canComplete = usePermission('kyc.complete');
   const canReverifyPerm = usePermission('kyc.reverify');
   const canRevokePerm = usePermission('kyc.revoke');
-  const canRecheckPerm = usePermission('kyc.recheck');
   const canAssignKyc = usePermission('kyc.assign');
   const canCaseCreate = usePermission('case.create');
   const canCaseAssign = usePermission('case.assign');
@@ -161,10 +158,6 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const [revokeTask, setRevokeTask] = useState<{ id: string; taskNumber: string } | null>(null);
   const [revokeReasonCode, setRevokeReasonCode] = useState<string>('');
   const [revokeOtherReason, setRevokeOtherReason] = useState<string>('');
-  const [recheckTask, setRecheckTask] = useState<{
-    id: string;
-    taskNumber: string;
-  } | null>(null);
   const { data: revokeReasonsResp } = useQuery({
     queryKey: ['revoke-reasons', 'active'],
     queryFn: () => revokeReasonsService.listActive(),
@@ -238,22 +231,6 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
       toast.error(
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
           'Failed to revoke'
-      );
-    }
-  };
-
-  const handleRecheckSubmit = async () => {
-    if (!recheckTask) {
-      return;
-    }
-    try {
-      await recheckKyc(recheckTask.id);
-      toast.success('KYC document moved back to Pending');
-      setRecheckTask(null);
-    } catch (error) {
-      toast.error(
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-          'Failed to recheck'
       );
     }
   };
@@ -632,10 +609,9 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                   const canAssign =
                     canAssignPerm &&
                     ((status === 'PENDING' && !task.assignedTo) || status === 'REVOKED');
-                  // F9.1: COMPLETED rows can also be rechecked (re-open a verified doc).
-                  const canRecheck =
-                    canRecheckPerm && (status === 'REVOKED' || status === 'COMPLETED');
-                  // P3: non-destructive reverification opens a new billable cycle.
+                  // P3 (2026-06-02): /recheck retired for KYC — reverify is the
+                  // single re-open path (non-destructive, billable, history-preserving).
+                  // The /recheck endpoint remains admin-only for emergencies.
                   const canReverify = canReverifyPerm && status === 'COMPLETED';
                   const isCompleted = status === 'COMPLETED';
                   return (
@@ -746,19 +722,6 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                             >
                               <XCircle className="h-4 w-4 mr-1" />
                               Revoke
-                            </Button>
-                          )}
-                          {canRecheck && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                setRecheckTask({ id: task.id, taskNumber: task.taskNumber })
-                              }
-                              title="Move back to Pending for a fresh verification"
-                            >
-                              <RefreshCw className="h-4 w-4 mr-1" />
-                              Recheck
                             </Button>
                           )}
                           {canReverify && (
@@ -980,35 +943,6 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
               }
             >
               {isRevoking ? 'Revoking…' : 'Revoke'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* F9.1: Recheck confirm dialog */}
-      <Dialog
-        open={recheckTask !== null}
-        onOpenChange={(open) => {
-          if (!open && !isRechecking) {
-            setRecheckTask(null);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Recheck KYC document?</DialogTitle>
-            <DialogDescription>
-              <strong>{recheckTask?.taskNumber || 'This document'}</strong> goes back to Pending for
-              a fresh verification. Previous revoke metadata is cleared and the recheck count
-              increments.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <Button variant="outline" disabled={isRechecking} onClick={() => setRecheckTask(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleRecheckSubmit} disabled={isRechecking}>
-              {isRechecking ? 'Rechecking…' : 'Recheck'}
             </Button>
           </DialogFooter>
         </DialogContent>
