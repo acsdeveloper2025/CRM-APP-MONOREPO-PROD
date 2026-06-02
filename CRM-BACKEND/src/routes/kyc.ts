@@ -15,6 +15,7 @@ import {
   assignKYCTask,
   uploadKYCDocument,
   uploadKYCReport,
+  recheckCloneKYCTask,
   getKYCTasksForCase,
   exportKYCToExcel,
   startKYCTask,
@@ -182,11 +183,22 @@ router.post(
 );
 
 // P3 (2026-06-02): non-destructive reverification — opens a NEW billable cycle.
+// Superseded by recheck-clone below for the UI; endpoint kept for legacy/admin.
 router.post(
   '/tasks/:taskId/reverify',
   authorize('kyc.reverify'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   reverifyKYCTask
+);
+
+// P3 redesign (2026-06-02): Recheck = clone a COMPLETED KYC doc into a NEW
+// Pending task (editable + reassignable, bills as a fresh KYC). Replaces the
+// Reverify button in the UI. Gated kyc.reverify (Backend User executor holds it).
+router.post(
+  '/tasks/:taskId/recheck-clone',
+  authorize('kyc.reverify'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
+  recheckCloneKYCTask
 );
 
 // P3/P6: per-cycle reverification history (read-only).

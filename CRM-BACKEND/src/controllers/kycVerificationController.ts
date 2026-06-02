@@ -621,7 +621,7 @@ export const getKycMis = async (req: AuthenticatedRequest, res: Response) => {
            WHERE cyc.status IN ('KYC_ASSIGNED','KYC_REASSIGNED')
          ) as "pendingWithVerifier",
          COUNT(*) FILTER (WHERE cyc.status = 'KYC_COMPLETED') as completed,
-         COUNT(*) FILTER (WHERE cyc.cycle_number > 1) as "reverificationCount",
+         COUNT(*) FILTER (WHERE cyc.cycle_number > 1 OR kdv.recheck_of_kyc_id IS NOT NULL) as "reverificationCount",
          COUNT(*) FILTER (WHERE cyc.billable = true) as "billableCount",
          COUNT(*) FILTER (WHERE cyc.billed = true) as "billedCount",
          COALESCE(SUM(cyc.rate_amount) FILTER (WHERE cyc.billable = true), 0)::text as "eligibleRevenue",
@@ -1500,6 +1500,213 @@ export const reverifyKYCTask = async (req: AuthenticatedRequest, res: Response) 
   } catch (error) {
     logger.error('Error opening KYC reverification cycle:', error);
     res.status(500).json({ success: false, message: 'Failed to open reverification cycle' });
+  }
+};
+
+// POST /api/kyc/tasks/:taskId/recheck-clone
+// P3 (2026-06-02): Recheck a COMPLETED KYC doc by CLONING it into a NEW Pending
+// task (replaces the reverify-cycle path). Copies customer/doc data + per-type
+// document_details (NOT the findings), applies any edits (documentTypeId /
+// documentNumber / documentHolderName / documentDetails / assignedTo),
+// re-resolves a FRESH rate from kyc_rates, and links the new kdv to the original
+// via recheck_of_kyc_id. The clone is a normal new KYC task → its own cycle 1 →
+// its own invoice line (fresh charge). The original stays COMPLETED. Gated
+// kyc.reverify (held by the Backend User executor).
+export const recheckCloneKYCTask = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const taskId = String(req.params.taskId || '');
+    const userId = req.user!.id;
+    const body = (req.body || {}) as {
+      documentTypeId?: number | string;
+      documentNumber?: string;
+      documentHolderName?: string;
+      assignedTo?: string;
+      documentDetails?: Record<string, unknown>;
+    };
+
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+
+    const origRes = await query<{
+      id: string;
+      caseId: string;
+      status: string;
+      documentTypeId: number;
+      documentNumber: string | null;
+      documentHolderName: string | null;
+      documentDetails: Record<string, unknown> | null;
+      description: string | null;
+      assignedTo: string | null;
+      clientId: number;
+      productId: number | null;
+    }>(
+      `SELECT kdv.id, kdv.case_id AS "caseId", kdv.verification_status AS "status",
+              kdv.document_type_id AS "documentTypeId", kdv.document_number AS "documentNumber",
+              kdv.document_holder_name AS "documentHolderName", kdv.document_details AS "documentDetails",
+              kdv.description, kdv.assigned_to AS "assignedTo",
+              c.client_id AS "clientId", c.product_id AS "productId"
+         FROM kyc_document_verifications kdv
+         JOIN cases c ON c.id = kdv.case_id
+        WHERE (kdv.id = $1 OR kdv.verification_task_id = $1) AND kdv.deleted_at IS NULL
+        LIMIT 1`,
+      [taskId]
+    );
+    if (origRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+    const orig = origRes.rows[0];
+    if (orig.status !== 'COMPLETED') {
+      return res.status(409).json({
+        success: false,
+        message: `Recheck is only available for a completed KYC document; current state is ${orig.status}.`,
+        error: { code: 'INVALID_STATE_TRANSITION', currentStatus: orig.status },
+      });
+    }
+
+    // A case can hold only ONE active (non-terminal) KYC task at a time
+    // (verification_tasks_active_unique_idx on case_id+verification_type_id).
+    // If a pending recheck already exists, block with a clear message.
+    const activeRes = await query<{ id: string }>(
+      `SELECT id FROM verification_tasks
+        WHERE case_id = $1 AND task_type = 'KYC'
+          AND status IN ('PENDING','ASSIGNED','IN_PROGRESS')
+        LIMIT 1`,
+      [orig.caseId]
+    );
+    if (activeRes.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message:
+          'This case already has an active KYC task pending verification. Complete it before creating another recheck.',
+        error: { code: 'KYC_ACTIVE_EXISTS' },
+      });
+    }
+
+    const newDocTypeId = body.documentTypeId ? Number(body.documentTypeId) : orig.documentTypeId;
+    const documentNumber =
+      body.documentNumber !== undefined ? body.documentNumber || null : orig.documentNumber;
+    const documentHolderName =
+      body.documentHolderName !== undefined
+        ? body.documentHolderName || null
+        : orig.documentHolderName;
+    const assignedTo = body.assignedTo || orig.assignedTo;
+    if (!assignedTo) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'A KYC verifier must be assigned for the recheck.' });
+    }
+
+    // Fresh rate for the (possibly edited) document type — fail loud if missing.
+    const rateRes = await query<{ amount: string }>(
+      `SELECT amount FROM kyc_rates
+         WHERE client_id = $1 AND product_id = $2 AND document_type_id = $3 AND is_active = true
+         ORDER BY effective_from DESC NULLS LAST
+         LIMIT 1`,
+      [orig.clientId, orig.productId, newDocTypeId]
+    );
+    if (rateRes.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'No active KYC rate for the selected document type under this client + product. Configure it in Rate Management → KYC Rates.',
+        error: { code: 'KYC_RATE_MISSING' },
+      });
+    }
+    const rateAmount = parseFloat(rateRes.rows[0].amount);
+
+    const docCodeRes = await query<{ code: string }>(
+      `SELECT code FROM document_types WHERE id = $1 LIMIT 1`,
+      [newDocTypeId]
+    );
+    const docLabel = (docCodeRes.rows[0]?.code || 'DOCUMENT').replace(/_/g, ' ');
+
+    const client = wrapClient(await pool.connect());
+    try {
+      await client.query('BEGIN');
+
+      const newTask = await client.query<{ id: string }>(
+        `INSERT INTO verification_tasks (
+            case_id, task_title, task_description, priority, status,
+            task_type, verification_type_id, assignment_type, created_by, estimated_amount,
+            assigned_to, assigned_by, assigned_at
+          ) VALUES (
+            $1, $2, $3, 'MEDIUM', 'ASSIGNED', 'KYC',
+            (SELECT id FROM verification_types WHERE code='KYC' LIMIT 1),
+            'KYC_VERIFIER', $4, $5, $6, $4, NOW()
+          )
+          RETURNING id`,
+        [
+          orig.caseId,
+          `KYC: ${docLabel} (Recheck)`,
+          `KYC recheck of a completed document (${docLabel})`,
+          userId,
+          rateAmount,
+          assignedTo,
+        ]
+      );
+      const newTaskId = newTask.rows[0].id;
+
+      const newKdv = await client.query<{ id: string }>(
+        `INSERT INTO kyc_document_verifications (
+            verification_task_id, case_id, document_type_id,
+            document_number, document_holder_name, verification_status,
+            document_details, description,
+            assigned_to, assigned_by, assigned_at, rate_amount, recheck_of_kyc_id
+          ) VALUES (
+            $1, $2, $3, $4, $5, 'PENDING', $6, $7, $8, $9, NOW(), $10, $11
+          )
+          RETURNING id`,
+        [
+          newTaskId,
+          orig.caseId,
+          newDocTypeId,
+          documentNumber,
+          documentHolderName,
+          JSON.stringify(body.documentDetails ?? orig.documentDetails ?? {}),
+          orig.description || null,
+          assignedTo,
+          userId,
+          rateAmount,
+          orig.id,
+        ]
+      );
+      const newKdvId = newKdv.rows[0].id;
+
+      await client.query(
+        `INSERT INTO kyc_verification_cycles
+           (verification_task_id, case_id, cycle_number, assigned_verifier_id, assigned_by, assigned_at, status, rate_amount, billable, billed)
+         VALUES ($1, $2, 1, $3, $4, NOW(), 'KYC_ASSIGNED', $5, true, false)`,
+        [newTaskId, orig.caseId, assignedTo, userId, rateAmount]
+      );
+
+      await CaseStatusSyncService.recalculateCaseStatus(orig.caseId, client);
+      await client.query('COMMIT');
+
+      await createAuditLog({
+        userId,
+        action: 'KYC_RECHECK_CLONED',
+        entityType: 'KYC',
+        entityId: newKdvId,
+        details: { sourceKycId: orig.id, newTaskId, documentTypeId: newDocTypeId, assignedTo },
+      });
+      void notifyKycAssignment(assignedTo, newKdvId);
+
+      res.json({
+        success: true,
+        message: 'Recheck created — a new KYC task is pending with the assigned verifier.',
+        data: { id: newKdvId, verificationTaskId: newTaskId },
+      });
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    logger.error('Error creating KYC recheck clone:', error);
+    res.status(500).json({ success: false, message: 'Failed to create recheck' });
   }
 };
 

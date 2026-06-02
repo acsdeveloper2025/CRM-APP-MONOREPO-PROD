@@ -34,19 +34,16 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCheck,
-  XCircle,
 } from 'lucide-react';
 import {
   useKYCTasks,
   useKYCDocumentTypes,
   useAssignKYCTask,
-  useRevokeKYCTask,
-  useReverifyKYCTask,
+  useRecheckCloneKYC,
   useKYCMis,
 } from '@/hooks/useKYC';
 import { usePermission } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -56,7 +53,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { apiService } from '@/services/api';
-import { revokeReasonsService } from '@/services/revokeReasons';
 import { extractEditBlockedError } from '@/utils/editLock';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { useScopePageReset } from '@/hooks/useScopePageReset';
@@ -131,9 +127,9 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const [reassignTo, setReassignTo] = useState<string>('');
   const { mutateAsync: assignKyc, isPending: isReassigning } = useAssignKYCTask();
 
-  // KYC state-transition mutations
-  const { mutateAsync: revokeKyc, isPending: isRevoking } = useRevokeKYCTask();
-  const { mutateAsync: reverifyKyc, isPending: isReverifying } = useReverifyKYCTask();
+  // KYC state-transition mutations. P3 (2026-06-02): Reverify + Revoke retired
+  // from the UI — Recheck = clone-to-new-task is the single re-open path.
+  const { mutateAsync: recheckClone, isPending: isRechecking } = useRecheckCloneKYC();
   // KYC Verifier read-only model (2026-06-02): action controls are permission-
   // gated. The read-only verifier (none of these) sees only View + navigation.
   // NOTE: each usePermission() is a hook (reads auth context) — call them all
@@ -159,16 +155,16 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const { user } = useAuth();
   const isReadOnlyKyc =
     !canComplete && !canAssignPerm && !canRevokePerm && !canReverifyPerm;
-  const [revokeTask, setRevokeTask] = useState<{ id: string; taskNumber: string } | null>(null);
-  const [revokeReasonCode, setRevokeReasonCode] = useState<string>('');
-  const [revokeOtherReason, setRevokeOtherReason] = useState<string>('');
-  const { data: revokeReasonsResp } = useQuery({
-    queryKey: ['revoke-reasons', 'active'],
-    queryFn: () => revokeReasonsService.listActive(),
-    staleTime: 5 * 60 * 1000,
-    enabled: revokeTask !== null,
-  });
-  const activeRevokeReasons = revokeReasonsResp?.data ?? [];
+  // Recheck-clone dialog (P3): clone a completed KYC doc into a new editable
+  // Pending task. Pre-filled from the row; user edits + picks a verifier.
+  const [recheckTask, setRecheckTask] = useState<{ id: string; taskNumber: string } | null>(null);
+  const [recheckDocType, setRecheckDocType] = useState<string>('');
+  const [recheckNumber, setRecheckNumber] = useState<string>('');
+  const [recheckHolder, setRecheckHolder] = useState<string>('');
+  const [recheckVerifier, setRecheckVerifier] = useState<string>('');
+  // Per-document-type custom field values (e.g. PAN-specific fields). Pre-filled
+  // from the original, editable; keyed by the doc type's customFields schema.
+  const [recheckDetails, setRecheckDetails] = useState<Record<string, string>>({});
   const { data: kycVerifiersData } = useQuery({
     queryKey: ['users-kyc-verifier-assignable'],
     queryFn: async () => {
@@ -176,7 +172,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
       return res.data as Array<{ id: string; name: string; employeeId: string }>;
     },
     staleTime: 5 * 60 * 1000,
-    enabled: reassignTaskId !== null,
+    enabled: reassignTaskId !== null || recheckTask !== null,
   });
   const kycVerifiers = kycVerifiersData || [];
   const handleReassignSubmit = async () => {
@@ -204,27 +200,62 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
     navigate(`/kyc-verification/verify/${task.id}`);
   };
 
-  const handleRevokeSubmit = async () => {
-    if (!revokeTask) {
+  const openRecheck = (task: {
+    id: string;
+    taskNumber: string;
+    documentType: string;
+    documentNumber: string | null;
+    documentHolderName: string | null;
+    documentDetails?: Record<string, string> | null;
+    assignedTo: string | null;
+  }) => {
+    setRecheckTask({ id: task.id, taskNumber: task.taskNumber });
+    setRecheckDocType(task.documentType || '');
+    setRecheckNumber(task.documentNumber || '');
+    setRecheckHolder(task.documentHolderName || '');
+    setRecheckVerifier(task.assignedTo || '');
+    setRecheckDetails({ ...(task.documentDetails || {}) });
+  };
+
+  const handleRecheckSubmit = async () => {
+    if (!recheckTask) {
       return;
     }
-    const matched = activeRevokeReasons.find((r) => r.code === revokeReasonCode);
-    const reason =
-      revokeReasonCode === 'OTHER' ? revokeOtherReason.trim() : matched?.label || revokeReasonCode;
-    if (!reason) {
-      toast.error('Please pick or enter a revoke reason.');
+    if (!recheckVerifier) {
+      toast.error('Please select a KYC verifier.');
       return;
     }
+    const selType = docTypes.find((d) => d.code === recheckDocType);
+    const fields = selType?.customFields || [];
+    const missing = fields.filter((f) => f.required && !(recheckDetails[f.key] || '').trim());
+    if (missing.length > 0) {
+      toast.error(`Please fill: ${missing.map((m) => m.label).join(', ')}`);
+      return;
+    }
+    const documentDetails: Record<string, string> = {};
+    fields.forEach((f) => {
+      const v = (recheckDetails[f.key] || '').trim();
+      if (v) {
+        documentDetails[f.key] = v;
+      }
+    });
     try {
-      await revokeKyc({ taskId: revokeTask.id, revokeReason: reason });
-      toast.success('KYC document revoked');
-      setRevokeTask(null);
-      setRevokeReasonCode('');
-      setRevokeOtherReason('');
+      await recheckClone({
+        taskId: recheckTask.id,
+        payload: {
+          documentTypeId: selType?.id,
+          documentNumber: recheckNumber.trim() || undefined,
+          documentHolderName: recheckHolder.trim() || undefined,
+          documentDetails: Object.keys(documentDetails).length > 0 ? documentDetails : undefined,
+          assignedTo: recheckVerifier,
+        },
+      });
+      toast.success('Recheck created — a new KYC task is pending with the verifier.');
+      setRecheckTask(null);
     } catch (error) {
       toast.error(
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-          'Failed to revoke'
+          'Failed to create recheck'
       );
     }
   };
@@ -544,20 +575,13 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                   const canCompleteTask =
                     canComplete &&
                     (status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS');
-                  const canRevoke =
-                    canRevokePerm &&
-                    (status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS');
-                  // Field-task parity: Assign on PENDING (first-time, no assignee yet),
-                  // Reassign on REVOKED (after revoke). ASSIGNED/IN_PROGRESS users
-                  // MUST revoke first so the task leaves the current verifier's tray
-                  // cleanly — no silent yank.
+                  // Assign on a first-time PENDING (no assignee yet) or a REVOKED row.
                   const canAssign =
                     canAssignPerm &&
                     ((status === 'PENDING' && !task.assignedTo) || status === 'REVOKED');
-                  // P3 (2026-06-02): /recheck retired for KYC — reverify is the
-                  // single re-open path (non-destructive, billable, history-preserving).
-                  // The /recheck endpoint remains admin-only for emergencies.
-                  const canReverify = canReverifyPerm && status === 'COMPLETED';
+                  // P3 (2026-06-02): Recheck = clone-to-new-task on a COMPLETED doc
+                  // (replaces Reverify). Revoke removed from the UI.
+                  const canRecheck = canReverifyPerm && status === 'COMPLETED';
                   const isCompleted = status === 'COMPLETED';
                   return (
                     <TableRow key={task.id} className="hover:bg-muted">
@@ -651,38 +675,15 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                               {status === 'PENDING' ? 'Assign' : 'Reassign'}
                             </Button>
                           )}
-                          {canRevoke && (
+                          {canRecheck && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                setRevokeTask({ id: task.id, taskNumber: task.taskNumber });
-                                setRevokeReasonCode('');
-                                setRevokeOtherReason('');
-                              }}
-                              title="Revoke this KYC document"
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Revoke
-                            </Button>
-                          )}
-                          {canReverify && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={isReverifying}
-                              onClick={async () => {
-                                try {
-                                  await reverifyKyc({ taskId: task.id });
-                                  toast.success('Reverification cycle opened');
-                                } catch {
-                                  toast.error('Failed to open reverification cycle');
-                                }
-                              }}
-                              title="Open a new billable reverification cycle (history preserved)"
+                              onClick={() => openRecheck(task)}
+                              title="Recheck — clone this into a new editable KYC task and reassign"
                             >
                               <RefreshCw className="h-4 w-4 mr-1" />
-                              Reverify
+                              Recheck
                             </Button>
                           )}
                         </div>
@@ -806,85 +807,106 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* F9.1: Revoke KYC dialog — picks from revoke_reasons master with
-          OTHER → free-text fallback. BE writes kyc_revocations audit row. */}
+      {/* P3 (2026-06-02): Recheck dialog — clone a completed KYC doc into a new
+          editable Pending task, then reassign to a verifier. Bills as fresh. */}
       <Dialog
-        open={revokeTask !== null}
+        open={recheckTask !== null}
         onOpenChange={(open) => {
-          if (!open && !isRevoking) {
-            setRevokeTask(null);
-            setRevokeReasonCode('');
-            setRevokeOtherReason('');
+          if (!open && !isRechecking) {
+            setRecheckTask(null);
           }
         }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Revoke KYC document?</DialogTitle>
+            <DialogTitle>Recheck KYC document</DialogTitle>
             <DialogDescription>
-              This sends <strong>{revokeTask?.taskNumber || 'this document'}</strong> to the Revoke
-              KYC queue. The verifier&apos;s assignment is cleared. A reviewer can later recheck it
-              to move it back to Pending.
+              Creates a NEW KYC task (copied from <strong>{recheckTask?.taskNumber || 'this one'}</strong>)
+              in Pending. Edit the details if needed, pick a verifier, and it&apos;s billed as a fresh
+              KYC. The original stays completed.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="kyc-revoke-reason">Reason *</Label>
-              <Select value={revokeReasonCode} onValueChange={setRevokeReasonCode}>
-                <SelectTrigger id="kyc-revoke-reason">
-                  <SelectValue placeholder="Pick a reason" />
+              <Label htmlFor="kyc-recheck-doctype">Document Type</Label>
+              <Select value={recheckDocType} onValueChange={setRecheckDocType}>
+                <SelectTrigger id="kyc-recheck-doctype">
+                  <SelectValue placeholder="Select document type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {activeRevokeReasons.length === 0 ? (
+                  {docTypes.map((dt) => (
+                    <SelectItem key={dt.code} value={dt.code}>
+                      {dt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="kyc-recheck-number">Document Number</Label>
+              <Input
+                id="kyc-recheck-number"
+                value={recheckNumber}
+                onChange={(e) => setRecheckNumber(e.target.value)}
+                placeholder="Document number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="kyc-recheck-holder">Document Holder Name</Label>
+              <Input
+                id="kyc-recheck-holder"
+                value={recheckHolder}
+                onChange={(e) => setRecheckHolder(e.target.value)}
+                placeholder="Holder name"
+              />
+            </div>
+            {/* P3: per-document-type custom fields (e.g. PAN-specific). Rendered
+                from the selected type's schema, pre-filled from the original. */}
+            {(docTypes.find((d) => d.code === recheckDocType)?.customFields || []).map((f) => (
+              <div key={f.key} className="space-y-2">
+                <Label htmlFor={`kyc-recheck-${f.key}`}>
+                  {f.label}
+                  {f.required ? ' *' : ''}
+                </Label>
+                <Input
+                  id={`kyc-recheck-${f.key}`}
+                  type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
+                  value={recheckDetails[f.key] || ''}
+                  onChange={(e) =>
+                    setRecheckDetails((prev) => ({ ...prev, [f.key]: e.target.value }))
+                  }
+                  placeholder={f.label}
+                />
+              </div>
+            ))}
+            <div className="space-y-2">
+              <Label htmlFor="kyc-recheck-verifier">Assign to Verifier *</Label>
+              <Select value={recheckVerifier} onValueChange={setRecheckVerifier}>
+                <SelectTrigger id="kyc-recheck-verifier">
+                  <SelectValue placeholder="Select a verifier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {kycVerifiers.length === 0 ? (
                     <SelectItem value="empty" disabled>
-                      No revoke reasons configured
+                      No verifiers available
                     </SelectItem>
                   ) : (
-                    activeRevokeReasons.map((r) => (
-                      <SelectItem key={r.code} value={r.code}>
-                        {r.label}
+                    kycVerifiers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} {u.employeeId ? `(${u.employeeId})` : ''}
                       </SelectItem>
                     ))
                   )}
                 </SelectContent>
               </Select>
             </div>
-            {revokeReasonCode === 'OTHER' && (
-              <div className="space-y-2">
-                <Label htmlFor="kyc-revoke-other">Specify reason *</Label>
-                <Textarea
-                  id="kyc-revoke-other"
-                  value={revokeOtherReason}
-                  onChange={(e) => setRevokeOtherReason(e.target.value)}
-                  placeholder="Explain why this KYC document should be revoked"
-                  rows={3}
-                  maxLength={500}
-                />
-              </div>
-            )}
           </div>
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <Button
-              variant="outline"
-              disabled={isRevoking}
-              onClick={() => {
-                setRevokeTask(null);
-                setRevokeReasonCode('');
-                setRevokeOtherReason('');
-              }}
-            >
+            <Button variant="outline" disabled={isRechecking} onClick={() => setRecheckTask(null)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleRevokeSubmit}
-              disabled={
-                isRevoking ||
-                !revokeReasonCode ||
-                (revokeReasonCode === 'OTHER' && revokeOtherReason.trim().length === 0)
-              }
-            >
-              {isRevoking ? 'Revoking…' : 'Revoke'}
+            <Button onClick={handleRecheckSubmit} disabled={isRechecking || !recheckVerifier}>
+              {isRechecking ? 'Creating…' : 'Create Recheck'}
             </Button>
           </DialogFooter>
         </DialogContent>

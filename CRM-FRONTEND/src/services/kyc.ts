@@ -194,6 +194,21 @@ class KYCService {
     return apiService.post(`/kyc/tasks/${taskId}/reverify`, opts || {});
   }
 
+  // P3 (2026-06-02): Recheck = clone a completed KYC doc into a new editable
+  // Pending task (replaces reverify). Bills as a fresh KYC.
+  async recheckClone(
+    taskId: string,
+    payload: {
+      documentTypeId?: number;
+      documentNumber?: string;
+      documentHolderName?: string;
+      documentDetails?: Record<string, string>;
+      assignedTo: string;
+    }
+  ): Promise<ApiResponse<{ id: string; verificationTaskId: string }>> {
+    return apiService.post(`/kyc/tasks/${taskId}/recheck-clone`, payload);
+  }
+
   async getCycles(taskId: string): Promise<ApiResponse<KYCCycle[]>> {
     return apiService.get<KYCCycle[]>(`/kyc/tasks/${taskId}/cycles`);
   }
