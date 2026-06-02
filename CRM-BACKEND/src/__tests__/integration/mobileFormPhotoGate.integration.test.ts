@@ -55,6 +55,15 @@ const resetTaskInProgress = () =>
   );
 
 const clearTaskArtifacts = async () => {
+  // verification_reports has a UNIQUE(verification_task_id) constraint
+  // (verification_reports_task_unique). The submit success path INSERTs one
+  // row per task, so without this delete a second run hits a duplicate-key
+  // violation, the submit 500s, the task stays IN_PROGRESS, and the
+  // ">=5 photos -> COMPLETED" assertion fails. Clearing it keeps the test
+  // self-isolating across repeated runs on a non-freshly-provisioned DB.
+  await query(`DELETE FROM verification_reports WHERE verification_task_id=$1`, [taskId]).catch(
+    () => undefined
+  );
   await query(`DELETE FROM commission_calculations WHERE verification_task_id=$1`, [taskId]).catch(
     () => undefined
   );

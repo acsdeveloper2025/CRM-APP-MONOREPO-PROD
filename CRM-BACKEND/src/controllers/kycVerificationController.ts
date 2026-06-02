@@ -22,8 +22,52 @@ import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { enforceBackendUserCaseScope } from '@/controllers/attachmentsController';
 import { createAuditLog } from '@/utils/auditLogger';
+import { NotificationService } from '@/services/NotificationService';
 import { checkEditable, buildEditBlockedResponse } from '@/utils/editLockGuard';
 import { TaskRevocationService } from '@/services/taskRevocationService';
+
+// P2 (2026-06-02): notify the read-only KYC Verifier on (re)assignment. Also
+// surfaces on the case-detail notifications timeline. Best-effort — never blocks
+// the assignment. kdvId is the kyc_document_verifications.id (route :taskId).
+const notifyKycAssignment = async (verifierId: string | null, kdvId: string): Promise<void> => {
+  if (!verifierId) {
+    return;
+  }
+  try {
+    const ctx = await query<{
+      caseId: string;
+      caseNumber: string | null;
+      taskNumber: string | null;
+      docName: string | null;
+    }>(
+      `SELECT kdv.case_id, ca.case_number, vt.task_number, dt.name AS doc_name
+         FROM kyc_document_verifications kdv
+         JOIN cases ca ON ca.id = kdv.case_id
+         JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
+         LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
+        WHERE kdv.id = $1`,
+      [kdvId]
+    );
+    const row = ctx.rows[0];
+    if (!row) {
+      return;
+    }
+    await NotificationService.sendNotification({
+      userId: verifierId,
+      title: `KYC Assigned — ${row.docName || 'Document'}`,
+      message: `Case #${row.caseNumber ?? ''}${row.taskNumber ? ` · ${row.taskNumber}` : ''} assigned to you. Download the documents and verify with the source.`,
+      type: 'KYC_ASSIGNED',
+      caseId: row.caseId,
+      caseNumber: row.caseNumber ?? undefined,
+      taskNumber: row.taskNumber ?? undefined,
+      actionUrl: `/kyc-verification/verify/${kdvId}`,
+      actionType: 'OPEN_TASK',
+      priority: 'MEDIUM',
+    });
+  } catch (err) {
+    logger.warn('KYC assignment notification failed (non-fatal):', err);
+  }
+};
 
 // =====================================================
 // Module-scope export + sort constants (filter-sweep 2026-05-23)
@@ -546,6 +590,69 @@ export const getKYCTaskStats = async (req: AuthenticatedRequest, res: Response) 
   }
 };
 
+// GET /api/kyc/mis
+// P5 (2026-06-02): the 7 required KYC MIS metrics, sourced from the append-only
+// kyc_verification_cycles table (NOT the destructive single row) so reverification
+// + per-cycle billing are countable. Reuses the same row-scope WHERE as the task
+// stats. (Assumes the current 1 KYC document : 1 task model for the kdv join.)
+export const getKycMis = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const baseWhere = await buildKycTasksBaseWhereClause(req);
+    const whereClause =
+      baseWhere.baseConditions.length > 0 ? `WHERE ${baseWhere.baseConditions.join(' AND ')}` : '';
+
+    const result = await query(
+      `SELECT
+         COUNT(*) as "totalAssigned",
+         COUNT(*) FILTER (
+           WHERE cyc.status IN ('KYC_ASSIGNED','KYC_REASSIGNED','KYC_IN_EXTERNAL_VERIFICATION')
+         ) as "pendingWithVerifier",
+         COUNT(*) FILTER (
+           WHERE cyc.status = 'KYC_IN_EXTERNAL_VERIFICATION' AND cyc.report_received_at IS NULL
+         ) as "reportAwaited",
+         COUNT(*) FILTER (WHERE cyc.status = 'KYC_COMPLETED') as completed,
+         COUNT(*) FILTER (WHERE cyc.cycle_number > 1) as "reverificationCount",
+         COUNT(*) FILTER (WHERE cyc.billable = true) as "billableCount",
+         COUNT(*) FILTER (WHERE cyc.billed = true) as "billedCount",
+         COALESCE(SUM(cyc.rate_amount) FILTER (WHERE cyc.billable = true), 0)::text as "eligibleRevenue",
+         COALESCE(SUM(cyc.rate_amount) FILTER (WHERE cyc.billed = true), 0)::text as "realizedRevenue"
+       FROM kyc_verification_cycles cyc
+       JOIN cases c ON c.id = cyc.case_id
+       JOIN verification_tasks vt ON vt.id = cyc.verification_task_id
+       JOIN kyc_document_verifications kdv ON kdv.verification_task_id = cyc.verification_task_id
+       ${whereClause}`,
+      baseWhere.baseParams
+    );
+
+    const row = result.rows[0] || {};
+    const num = (key: string): number => parseInt(row[key] || '0', 10);
+    const flt = (key: string): number => parseFloat(row[key] || '0');
+
+    res.json({
+      success: true,
+      data: {
+        totalAssigned: num('totalAssigned'),
+        pendingWithVerifier: num('pendingWithVerifier'),
+        reportAwaited: num('reportAwaited'),
+        completed: num('completed'),
+        reverificationCount: num('reverificationCount'),
+        billableCount: num('billableCount'),
+        billedCount: num('billedCount'),
+        eligibleRevenue: flt('eligibleRevenue'),
+        realizedRevenue: flt('realizedRevenue'),
+      },
+      message: 'KYC MIS retrieved successfully',
+    });
+  } catch (error) {
+    logger.error('Error getting KYC MIS:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get KYC MIS',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
 export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const taskId = String(req.params.taskId || '');
@@ -748,13 +855,66 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
         // mis-resolved mixed states (e.g. 1×COMPLETED + 1×PENDING from a
         // newly-added Revisit task → wrongly stayed COMPLETED).
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
+
+        // P1/P2 (2026-06-02): snapshot the active reverification cycle — the
+        // append-only source of truth for KYC history + billing + MIS. The
+        // Backend User (userId) is the executor. Ensure a cycle exists (cycle 1
+        // is created at case-create; this guards tasks predating that wiring),
+        // then mark the latest cycle KYC_COMPLETED with the task-rollup outcome.
+        const cycleFinalMap: Record<string, string> = {
+          KYC_VERIFIED: 'Positive',
+          KYC_FAILED: 'Negative',
+          KYC_REFER: 'Refer',
+          KYC_FRAUD: 'Fraud',
+        };
+        await client.query(
+          `INSERT INTO kyc_verification_cycles
+             (verification_task_id, case_id, cycle_number, status, billable, billed)
+           SELECT $1, $2, 1, 'KYC_ASSIGNED', true, false
+           WHERE NOT EXISTS (SELECT 1 FROM kyc_verification_cycles WHERE verification_task_id = $1)`,
+          [verificationTaskId, caseId]
+        );
+        await client.query(
+          `UPDATE kyc_verification_cycles
+             SET status = 'KYC_COMPLETED', completed_by = $1, completed_at = CURRENT_TIMESTAMP,
+                 final_status = $2,
+                 rate_amount = COALESCE(rate_amount,
+                   (SELECT COALESCE(actual_amount, estimated_amount) FROM verification_tasks WHERE id = $3)),
+                 updated_at = CURRENT_TIMESTAMP
+           WHERE verification_task_id = $3
+             AND cycle_number = (SELECT MAX(cycle_number) FROM kyc_verification_cycles WHERE verification_task_id = $3)`,
+          [userId, cycleFinalMap[overallOutcome] || null, verificationTaskId]
+        );
+        // Snapshot per-document results onto the cycle's child rows (idempotent).
+        await client.query(
+          `INSERT INTO kyc_cycle_documents
+             (cycle_id, kyc_id, document_type_id, final_status, document_file_path, storage_key, sha256)
+           SELECT c.id, kdv.id, kdv.document_type_id, kdv.final_status,
+                  kdv.document_file_path, kdv.document_storage_key, kdv.sha256_hash
+             FROM kyc_verification_cycles c
+             JOIN kyc_document_verifications kdv ON kdv.verification_task_id = c.verification_task_id
+            WHERE c.verification_task_id = $1
+              AND c.cycle_number = (SELECT MAX(cycle_number) FROM kyc_verification_cycles WHERE verification_task_id = $1)
+           ON CONFLICT (cycle_id, kyc_id) DO UPDATE SET final_status = EXCLUDED.final_status`,
+          [verificationTaskId]
+        );
       }
 
       await client.query('COMMIT');
 
       // Post-commit financial hooks (commission auto-calc no-ops for KYC since
-      // rate_type_id is NULL — kept for symmetry + future KYC commission rules).
+      // rate_type_id is NULL — KYC is client revenue via invoices, not agent payout).
       await TaskCompletionFinalizer.triggerPostCompletionHooks(verificationTaskId);
+
+      // P2 (2026-06-02): completion is now audit-logged (was unlogged). The
+      // actual executor is the Backend User (userId), not the read-only verifier.
+      await createAuditLog({
+        userId,
+        action: 'KYC_COMPLETED',
+        entityType: 'KYC',
+        entityId: taskId,
+        details: { verificationTaskId, finalStatus },
+      });
 
       res.json({
         success: true,
@@ -817,13 +977,43 @@ export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) =>
     }
 
     // Also update the parent verification_task assignment
+    const verificationTaskId = result.rows[0].verificationTaskId as string;
     await query(
       `UPDATE verification_tasks
        SET assigned_to = $1, assigned_by = $2, assigned_at = CURRENT_TIMESTAMP,
            status = 'ASSIGNED', updated_at = CURRENT_TIMESTAMP
        WHERE id = $3 AND (status = 'PENDING' OR assigned_to IS NULL)`,
-      [assignedTo, userId, result.rows[0].verificationTaskId]
+      [assignedTo, userId, verificationTaskId]
     );
+
+    // P1/P2 (2026-06-02): ensure a reverification cycle exists and record the
+    // verifier assignment on the latest open cycle. Cycle 1 is normally created
+    // at case-create; this also covers tasks predating that wiring + reassigns.
+    await query(
+      `INSERT INTO kyc_verification_cycles
+         (verification_task_id, case_id, cycle_number, assigned_verifier_id, assigned_by, assigned_at, status, billable, billed)
+       SELECT $1, $2, 1, $3, $4, CURRENT_TIMESTAMP, 'KYC_ASSIGNED', true, false
+       WHERE NOT EXISTS (SELECT 1 FROM kyc_verification_cycles WHERE verification_task_id = $1)`,
+      [verificationTaskId, access.caseId, assignedTo, userId]
+    );
+    await query(
+      `UPDATE kyc_verification_cycles
+         SET assigned_verifier_id = $1, assigned_by = $2, assigned_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE verification_task_id = $3
+         AND cycle_number = (SELECT MAX(cycle_number) FROM kyc_verification_cycles WHERE verification_task_id = $3)
+         AND status IN ('KYC_ASSIGNED','KYC_REASSIGNED')`,
+      [assignedTo, userId, verificationTaskId]
+    );
+
+    // P2: assignment is now audit-logged (was unlogged).
+    await createAuditLog({
+      userId,
+      action: 'KYC_ASSIGNED_TO_VERIFIER',
+      entityType: 'KYC',
+      entityId: taskId,
+      details: { verifierId: assignedTo, verificationTaskId },
+    });
+    void notifyKycAssignment(String(assignedTo), taskId);
 
     res.json({ success: true, message: 'KYC task assigned', data: { id: taskId } });
   } catch (error) {
@@ -1152,6 +1342,169 @@ export const recheckKYCTask = async (req: AuthenticatedRequest, res: Response) =
   } catch (error) {
     logger.error('Error rechecking KYC document:', error);
     res.status(500).json({ success: false, message: 'Failed to recheck KYC document' });
+  }
+};
+
+// POST /api/kyc/tasks/:taskId/reverify
+// P3 (2026-06-02): NON-DESTRUCTIVE reverification. Client requests a recheck
+// after a KYC cycle is already COMPLETED → open a NEW billable cycle. Unlike
+// the legacy /recheck (which NULLs the live row and loses history), this:
+//   1. INSERTs a new kyc_verification_cycles row (cycle_number = max+1).
+//   2. Re-opens the engine task COMPLETED → ASSIGNED (edge is seeded).
+//   3. Resets ONLY the live kyc_document_verifications working row to ASSIGNED
+//      for the new verifier — the prior cycle's facts are immutably preserved
+//      in kyc_verification_cycles + kyc_cycle_documents (snapshotted at the
+//      prior completion), so nothing historical is overwritten.
+// Gated on kyc.reverify (Backend User / Manager / Super Admin).
+export const reverifyKYCTask = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const taskId = String(req.params.taskId || '');
+    const userId = req.user!.id;
+    const { assignedTo, reason } = req.body as { assignedTo?: string; reason?: string };
+
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+
+    const client = wrapClient(await pool.connect());
+    try {
+      await client.query('BEGIN');
+
+      const lookup = await client.query<{
+        verificationStatus: string;
+        verificationTaskId: string;
+        assignedTo: string | null;
+      }>(
+        `SELECT verification_status, verification_task_id, assigned_to
+           FROM kyc_document_verifications
+          WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
+        [taskId]
+      );
+      if (lookup.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, message: 'KYC task not found' });
+      }
+      if (lookup.rows[0].verificationStatus !== 'COMPLETED') {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          message: `Reverification requires a COMPLETED KYC cycle; current state is ${lookup.rows[0].verificationStatus}.`,
+          error: {
+            code: 'INVALID_STATE_TRANSITION',
+            currentStatus: lookup.rows[0].verificationStatus,
+          },
+        });
+      }
+
+      const verificationTaskId = lookup.rows[0].verificationTaskId;
+      const newVerifier = assignedTo || lookup.rows[0].assignedTo;
+
+      const cy = await client.query<{ n: number }>(
+        `SELECT COALESCE(MAX(cycle_number), 0) + 1 AS n
+           FROM kyc_verification_cycles WHERE verification_task_id = $1`,
+        [verificationTaskId]
+      );
+      const newCycle = cy.rows[0].n;
+
+      // 1. New billable cycle (frozen rate mirrors the task snapshot).
+      await client.query(
+        `INSERT INTO kyc_verification_cycles
+           (verification_task_id, case_id, cycle_number, assigned_verifier_id, assigned_by, assigned_at,
+            status, rate_amount, billable, billed)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, 'KYC_REASSIGNED',
+            (SELECT COALESCE(actual_amount, estimated_amount) FROM verification_tasks WHERE id = $1), true, false)`,
+        [verificationTaskId, access.caseId, newCycle, newVerifier, userId]
+      );
+
+      // 2. Re-open the engine task (COMPLETED → ASSIGNED). Clear the prior
+      //    completion snapshot on the engine row; the cycle table holds history.
+      await client.query(
+        `UPDATE verification_tasks
+            SET status = 'ASSIGNED', assigned_to = $1, assigned_by = $2, assigned_at = CURRENT_TIMESTAMP,
+                completed_at = NULL, verification_outcome = NULL, actual_amount = NULL,
+                updated_at = CURRENT_TIMESTAMP
+          WHERE id = $3 AND status = 'COMPLETED'`,
+        [newVerifier, userId, verificationTaskId]
+      );
+
+      // 3. Reset the live working row for the new cycle (history is safe in the
+      //    cycle tables). recheck_count is bumped for legacy continuity.
+      await client.query(
+        `UPDATE kyc_document_verifications
+            SET verification_status = 'ASSIGNED',
+                assigned_to = $1, assigned_by = $2, assigned_at = CURRENT_TIMESTAMP,
+                started_at = NULL, started_by = NULL,
+                verified_at = NULL, verified_by = NULL, final_status = NULL,
+                remarks = NULL, rejection_reason = NULL,
+                recheck_count = recheck_count + 1, updated_at = CURRENT_TIMESTAMP
+          WHERE verification_task_id = $3`,
+        [newVerifier, userId, verificationTaskId]
+      );
+
+      await CaseStatusSyncService.recalculateCaseStatus(access.caseId, client);
+
+      await client.query('COMMIT');
+
+      await createAuditLog({
+        userId,
+        action: 'KYC_CYCLE_CREATED',
+        entityType: 'KYC',
+        entityId: taskId,
+        details: { cycle: newCycle, prevCycle: newCycle - 1, reason: reason || null },
+      });
+      await createAuditLog({
+        userId,
+        action: 'KYC_REASSIGNED',
+        entityType: 'KYC',
+        entityId: taskId,
+        details: { cycle: newCycle, toVerifierId: newVerifier },
+      });
+      void notifyKycAssignment(newVerifier, taskId);
+
+      res.json({
+        success: true,
+        message: `KYC reverification cycle ${newCycle} opened`,
+        data: { id: taskId, cycle: newCycle, status: 'ASSIGNED' },
+      });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    logger.error('Error opening KYC reverification cycle:', error);
+    res.status(500).json({ success: false, message: 'Failed to open reverification cycle' });
+  }
+};
+
+// GET /api/kyc/tasks/:taskId/cycles
+// P3/P6 (2026-06-02): per-cycle reverification history for the case timeline +
+// backend findings screen. Read-only; same row-scope check as task detail.
+export const listKycCycles = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const taskId = String(req.params.taskId || '');
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+    const result = await query(
+      `SELECT c.cycle_number, c.status, c.assigned_verifier_id, au.name AS assigned_verifier_name,
+              c.assigned_at, c.completed_by, cu.name AS completed_by_name, c.completed_at,
+              c.final_status, c.rate_amount, c.billable, c.billed, c.report_received_at, c.created_at
+         FROM kyc_verification_cycles c
+         JOIN kyc_document_verifications kdv ON kdv.verification_task_id = c.verification_task_id
+         LEFT JOIN users au ON au.id = c.assigned_verifier_id
+         LEFT JOIN users cu ON cu.id = c.completed_by
+        WHERE kdv.id = $1
+        ORDER BY c.cycle_number DESC`,
+      [taskId]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    logger.error('Error listing KYC cycles:', error);
+    res.status(500).json({ success: false, message: 'Failed to list KYC cycles' });
   }
 };
 

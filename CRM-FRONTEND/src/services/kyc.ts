@@ -184,6 +184,22 @@ class KYCService {
     return apiService.post(`/kyc/tasks/${taskId}/recheck`, {});
   }
 
+  // P3 (2026-06-02): non-destructive reverification — opens a new billable cycle.
+  async reverifyTask(
+    taskId: string,
+    opts?: { assignedTo?: string; reason?: string }
+  ): Promise<ApiResponse<{ id: string; cycle: number; status: string }>> {
+    return apiService.post(`/kyc/tasks/${taskId}/reverify`, opts || {});
+  }
+
+  async getCycles(taskId: string): Promise<ApiResponse<KYCCycle[]>> {
+    return apiService.get<KYCCycle[]>(`/kyc/tasks/${taskId}/cycles`);
+  }
+
+  async getMis(): Promise<ApiResponse<KYCMis>> {
+    return apiService.get<KYCMis>(`/kyc/mis`);
+  }
+
   async uploadDocument(taskId: string, file: File): Promise<ApiResponse<{ filePath: string }>> {
     const formData = new FormData();
     formData.append('document', file);
@@ -257,6 +273,37 @@ export interface KYCTaskStats {
   completedThisWeek: number;
   agingOver3Days: number;
   avgVerifyHours: number;
+}
+
+// P3/P6 (2026-06-02): one row per reverification cycle.
+export interface KYCCycle {
+  cycle_number: number;
+  status: string;
+  assigned_verifier_id: string | null;
+  assigned_verifier_name: string | null;
+  assigned_at: string | null;
+  completed_by: string | null;
+  completed_by_name: string | null;
+  completed_at: string | null;
+  final_status: string | null;
+  rate_amount: string | null;
+  billable: boolean;
+  billed: boolean;
+  report_received_at: string | null;
+  created_at: string;
+}
+
+// P5 (2026-06-02): KYC MIS metrics over the cycle table.
+export interface KYCMis {
+  totalAssigned: number;
+  pendingWithVerifier: number;
+  reportAwaited: number;
+  completed: number;
+  reverificationCount: number;
+  billableCount: number;
+  billedCount: number;
+  eligibleRevenue: number;
+  realizedRevenue: number;
 }
 
 export const kycService = new KYCService();

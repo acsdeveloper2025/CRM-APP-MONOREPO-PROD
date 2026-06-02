@@ -21,21 +21,13 @@ import {
   getSingleParam,
 } from './invoices/utils';
 import type {
-  Invoice,
-  InvoiceItem,
-  InvoiceListRow,
-  InvoiceItemRow,
   InvoiceTaskCandidateRow,
   InvoiceKycTaskCandidateRow,
   CreateInvoiceBody,
 } from './invoices/types';
-import {
-  parseCaseIdsFromItems,
-  invoiceAllowedByScope,
-  normalizeInvoiceForResponse,
-  buildScopeSql,
-} from './invoices/helpers';
+import { parseCaseIdsFromItems, invoiceAllowedByScope } from './invoices/helpers';
 import { ensureInvoiceAccessible, recordInvoiceStatusHistory } from './invoices/access';
+import { getInvoiceByIdFromDb } from './invoices/read';
 
 // Single 2dp rounder shared with gstResolver for arithmetic parity.
 // NEW-MED-1 (AUDIT 2026-05-16): Math.round(n*100)/100 is FP-unsafe — e.g.
@@ -44,380 +36,6 @@ import { ensureInvoiceAccessible, recordInvoiceStatusHistory } from './invoices/
 // picks the intended side. Off-by-0.01 invoice lines accumulate to CA
 // reconciliation tickets over time; this is GST-relevant precision.
 const round2 = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 100;
-
-const loadInvoiceItems = async (invoiceIds: number[]): Promise<Map<number, InvoiceItem[]>> => {
-  if (invoiceIds.length === 0) {
-    return new Map();
-  }
-
-  const result = await query<InvoiceItemRow>(
-    `SELECT
-       ii.id,
-       ii.invoice_id,
-       ii.description,
-       ii.quantity,
-       ii.unit_price::text,
-       ii.amount::text,
-       COALESCE(array_agg(DISTINCT iit.case_id::text) FILTER (WHERE iit.case_id IS NOT NULL), ARRAY[]::text[]) as case_ids
-     FROM invoice_items ii
-     LEFT JOIN invoice_item_tasks iit ON iit.invoice_item_id = ii.id
-     WHERE ii.invoice_id = ANY($1::bigint[])
-     GROUP BY ii.id, ii.invoice_id, ii.description, ii.quantity, ii.unit_price, ii.amount
-     ORDER BY ii.id ASC`,
-    [invoiceIds]
-  );
-
-  const map = new Map<number, InvoiceItem[]>();
-  result.rows.forEach(row => {
-    const current = map.get(Number(row.invoiceId)) || [];
-    current.push({
-      id: String(row.id),
-      invoiceId: String(row.invoiceId),
-      description: row.description,
-      quantity: Number(row.quantity),
-      unitPrice: toNumber(row.unitPrice),
-      amount: toNumber(row.amount),
-      totalPrice: toNumber(row.amount),
-      caseIds: Array.isArray(row.caseIds) ? row.caseIds : [],
-    });
-    map.set(Number(row.invoiceId), current);
-  });
-
-  return map;
-};
-
-const mapDbInvoiceRow = (
-  row: InvoiceListRow,
-  itemsMap: Map<number, InvoiceItem[]>
-): Invoice & { productId?: number | null } => ({
-  id: String(row.id),
-  invoiceNumber: row.invoiceNumber,
-  clientId: String(row.clientId),
-  clientName: row.clientName,
-  client: {
-    id: String(row.clientId),
-    name: row.clientName,
-    code: row.clientCode || String(row.clientId),
-    ...(row.clientEmail ? { email: row.clientEmail } : {}),
-    ...(row.clientPhone ? { phone: row.clientPhone } : {}),
-  },
-  productId: row.productId,
-  amount: toNumber(row.amount),
-  subtotalAmount: toNumber(row.subtotalAmount),
-  currency: row.currency,
-  status: row.status,
-  dueDate: row.dueDate,
-  issueDate: row.issueDate,
-  paidDate: row.paidDate,
-  items: itemsMap.get(Number(row.id)) || [],
-  taxAmount: toNumber(row.taxAmount),
-  totalAmount: toNumber(row.totalAmount),
-  notes: row.notes || '',
-  createdAt: row.createdAt,
-  updatedAt: row.updatedAt,
-  ...(row.paymentMethod ? { paymentMethod: row.paymentMethod } : {}),
-  ...(row.transactionId ? { transactionId: row.transactionId } : {}),
-  supplyType: (row.supplyType as Invoice['supplyType']) ?? null,
-  placeOfSupply: row.placeOfSupply ?? null,
-  cgstRate: row.cgstRate !== null ? toNumber(row.cgstRate) : null,
-  cgstAmount: row.cgstAmount !== null ? toNumber(row.cgstAmount) : null,
-  sgstRate: row.sgstRate !== null ? toNumber(row.sgstRate) : null,
-  sgstAmount: row.sgstAmount !== null ? toNumber(row.sgstAmount) : null,
-  igstRate: row.igstRate !== null ? toNumber(row.igstRate) : null,
-  igstAmount: row.igstAmount !== null ? toNumber(row.igstAmount) : null,
-});
-
-const getInvoicesFromDb = async (
-  req: AuthenticatedRequest,
-  scope: Awaited<ReturnType<typeof resolveDataScope>>
-): Promise<{
-  success: true;
-  data: Invoice[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
-}> => {
-  const {
-    page = 1,
-    limit = 20,
-    clientId,
-    status,
-    dateFrom,
-    dateTo,
-    search,
-    sortBy = 'issueDate',
-    sortOrder = 'desc',
-  } = req.query;
-
-  const conditions: string[] = [];
-  const params: Array<string | number | number[]> = [];
-
-  buildScopeSql(scope, conditions, params);
-
-  if (clientId) {
-    params.push(Number(clientId));
-    conditions.push(`i.client_id = $${params.length}`);
-  }
-
-  if (status && typeof status === 'string') {
-    const normalizedStatus = status.toUpperCase();
-    if (normalizedStatus === STATUS.OVERDUE) {
-      conditions.push(`i.status = '${STATUS.SENT}' AND i.paid_date IS NULL AND i.due_date < NOW()`);
-    } else {
-      params.push(normalizedStatus);
-      conditions.push(`i.status = $${params.length}`);
-    }
-  }
-
-  if (search && typeof search === 'string' && search.trim()) {
-    params.push(`%${search.trim()}%`);
-    conditions.push(`(
-      i.invoice_number ILIKE $${params.length} OR
-      i.client_name ILIKE $${params.length} OR
-      COALESCE(i.notes, '') ILIKE $${params.length}
-    )`);
-  }
-
-  if (typeof dateFrom === 'string' && dateFrom) {
-    params.push(dateFrom);
-    conditions.push(`i.issue_date >= $${params.length}`);
-  }
-
-  if (typeof dateTo === 'string' && dateTo) {
-    params.push(dateTo);
-    conditions.push(`i.issue_date <= $${params.length}`);
-  }
-
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  const safeSortByMap: Record<string, string> = {
-    invoiceNumber: 'i.invoice_number',
-    clientName: 'i.client_name',
-    amount: 'i.amount',
-    totalAmount: 'i.total_amount',
-    issueDate: 'i.issue_date',
-    dueDate: 'i.due_date',
-    status: 'i.status',
-    createdAt: 'i.created_at',
-  };
-  const sortByValue = typeof sortBy === 'string' ? sortBy : 'issueDate';
-  const sortOrderValue = typeof sortOrder === 'string' ? sortOrder : 'desc';
-  const safeSortBy = safeSortByMap[sortByValue] || 'i.issue_date';
-  const safeSortOrder = sortOrderValue.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-  const pageNum = Math.max(1, Number(page) || 1);
-  const limitNum = Math.max(1, Math.min(500, Number(limit) || 20));
-  const offset = (pageNum - 1) * limitNum;
-
-  const countResult = await query<{ total: string }>(
-    `SELECT COUNT(*)::text as total FROM invoices i ${whereClause}`,
-    params
-  );
-  const total = Number(countResult.rows[0]?.total || 0);
-
-  const listParams = [...params, limitNum, offset];
-  const rows = await query<InvoiceListRow>(
-    `SELECT
-       i.id,
-       i.invoice_number,
-       i.client_id,
-       i.product_id,
-       i.client_name,
-       i.amount::text,
-       i.subtotal_amount::text,
-       i.tax_amount::text,
-       i.total_amount::text,
-       i.currency,
-       i.status,
-       i.issue_date::text,
-       i.due_date::text,
-       i.paid_date::text,
-       i.notes,
-       i.created_at::text,
-       i.updated_at::text,
-       i.payment_method,
-       i.transaction_id,
-       i.supply_type,
-       i.place_of_supply,
-       i.cgst_rate::text,
-       i.cgst_amount::text,
-       i.sgst_rate::text,
-       i.sgst_amount::text,
-       i.igst_rate::text,
-       i.igst_amount::text,
-       c.code as client_code,
-       c.email as client_email,
-       c.phone as client_phone
-     FROM invoices i
-     LEFT JOIN clients c ON c.id = i.client_id
-     ${whereClause}
-     ORDER BY ${safeSortBy} ${safeSortOrder}
-     LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-    listParams
-  );
-
-  const invoiceIds = rows.rows.map(row => Number(row.id));
-  const itemsMap = await loadInvoiceItems(invoiceIds);
-  const data = rows.rows.map(row => normalizeInvoiceForResponse(mapDbInvoiceRow(row, itemsMap)));
-
-  return {
-    success: true,
-    data,
-    pagination: {
-      page: pageNum,
-      limit: limitNum,
-      total,
-      totalPages: Math.ceil(total / limitNum),
-    },
-  };
-};
-
-const getInvoiceByIdFromDb = async (
-  id: string,
-  scope: Awaited<ReturnType<typeof resolveDataScope>>,
-  client: PoolClient | null = null
-): Promise<Invoice | null> => {
-  const invoiceSelectSql = `SELECT
-     i.id,
-     i.invoice_number,
-     i.client_id,
-     i.product_id,
-     i.client_name,
-     i.amount::text,
-     i.subtotal_amount::text,
-     i.tax_amount::text,
-     i.total_amount::text,
-     i.currency,
-     i.status,
-     i.issue_date::text,
-     i.due_date::text,
-     i.paid_date::text,
-     i.notes,
-     i.created_at::text,
-     i.updated_at::text,
-     i.payment_method,
-     i.transaction_id,
-     i.supply_type,
-     i.place_of_supply,
-     i.cgst_rate::text,
-     i.cgst_amount::text,
-     i.sgst_rate::text,
-     i.sgst_amount::text,
-     i.igst_rate::text,
-     i.igst_amount::text,
-     c.code as client_code,
-     c.email as client_email,
-     c.phone as client_phone
-   FROM invoices i
-   LEFT JOIN clients c ON c.id = i.client_id
-   WHERE i.id = $1
-   LIMIT 1`;
-
-  const rowResult = client
-    ? await client.query<InvoiceListRow>(invoiceSelectSql, [Number(id)])
-    : await query<InvoiceListRow>(invoiceSelectSql, [Number(id)]);
-
-  const row = rowResult.rows[0];
-  if (!row) {
-    return null;
-  }
-
-  const itemsMap = client
-    ? await (async () => {
-        const result = await client.query<InvoiceItemRow>(
-          `SELECT
-             ii.id,
-             ii.invoice_id,
-             ii.description,
-             ii.quantity,
-             ii.unit_price::text,
-             ii.amount::text,
-             COALESCE(array_agg(DISTINCT iit.case_id::text) FILTER (WHERE iit.case_id IS NOT NULL), ARRAY[]::text[]) as case_ids
-           FROM invoice_items ii
-           LEFT JOIN invoice_item_tasks iit ON iit.invoice_item_id = ii.id
-           WHERE ii.invoice_id = $1
-           GROUP BY ii.id, ii.invoice_id, ii.description, ii.quantity, ii.unit_price, ii.amount
-           ORDER BY ii.id ASC`,
-          [Number(row.id)]
-        );
-        const map = new Map<number, InvoiceItem[]>();
-        map.set(
-          Number(row.id),
-          result.rows.map(itemRow => ({
-            id: String(itemRow.id),
-            invoiceId: String(itemRow.invoiceId),
-            description: itemRow.description,
-            quantity: Number(itemRow.quantity),
-            unitPrice: toNumber(itemRow.unitPrice),
-            amount: toNumber(itemRow.amount),
-            totalPrice: toNumber(itemRow.amount),
-            caseIds: Array.isArray(itemRow.caseIds) ? itemRow.caseIds : [],
-          }))
-        );
-        return map;
-      })()
-    : await loadInvoiceItems([Number(row.id)]);
-
-  const mapped = normalizeInvoiceForResponse(mapDbInvoiceRow(row, itemsMap));
-  if (!invoiceAllowedByScope({ clientId: mapped.clientId, productId: row.productId }, scope)) {
-    return null;
-  }
-
-  return mapped;
-};
-
-const getInvoiceStatsFromDb = async (
-  scope: Awaited<ReturnType<typeof resolveDataScope>>,
-  period: string
-): Promise<Record<string, unknown>> => {
-  const conditions: string[] = [];
-  const params: Array<string | number | number[]> = [];
-  buildScopeSql(scope, conditions, params);
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-  const result = await query<{
-    totalInvoices: string;
-    draftInvoices: string;
-    sentInvoices: string;
-    cancelledInvoices: string;
-    overdueInvoices: string;
-    totalAmount: string;
-    outstandingAmount: string;
-  }>(
-    `SELECT
-       COUNT(*)::text as total_invoices,
-       COUNT(*) FILTER (WHERE i.status = '${STATUS.DRAFT}')::text as draft_invoices,
-       COUNT(*) FILTER (WHERE i.status = '${STATUS.SENT}')::text as sent_invoices,
-       COUNT(*) FILTER (WHERE i.status = '${STATUS.CANCELLED}')::text as cancelled_invoices,
-       COUNT(*) FILTER (WHERE i.status = '${STATUS.SENT}' AND i.paid_date IS NULL AND i.due_date < NOW())::text as overdue_invoices,
-       COALESCE(SUM(i.total_amount), 0)::text as total_amount,
-       COALESCE(SUM(i.total_amount) FILTER (WHERE i.status = '${STATUS.SENT}' AND i.paid_date IS NULL), 0)::text as outstanding_amount
-     FROM invoices i
-     ${whereClause}`,
-    params
-  );
-
-  const stats = result.rows[0];
-  const totalAmount = toNumber(stats?.totalAmount);
-
-  return {
-    totalInvoices: Number(stats?.totalInvoices || 0),
-    paidInvoices: 0,
-    pendingInvoices: Number(stats?.sentInvoices || 0),
-    overdueInvoices: Number(stats?.overdueInvoices || 0),
-    totalAmount,
-    paidAmount: 0,
-    pendingAmount: toNumber(stats?.outstandingAmount),
-    collectionRate: 0,
-    statusDistribution: {
-      DRAFT: Number(stats?.draftInvoices || 0),
-      SENT: Number(stats?.sentInvoices || 0),
-      APPROVED: 0,
-      PAID: 0,
-      CANCELLED: Number(stats?.cancelledInvoices || 0),
-      OVERDUE: Number(stats?.overdueInvoices || 0),
-    },
-    clientDistribution: {},
-    period,
-    generatedAt: new Date().toISOString(),
-  };
-};
 
 const getNextInvoiceIdentity = async (
   client: PoolClient
@@ -614,92 +232,96 @@ const loadCompletedUnbilledKycTasks = async (
   billingPeriodFrom?: string,
   billingPeriodTo?: string
 ): Promise<InvoiceKycTaskCandidateRow[]> => {
-  // C-2 + KYC billing (audit 2026-05-11): KYC tasks land in invoice_items
-  // with frozen pricing from verification_tasks.estimated_amount.
-  // KYC tasks don't have verification_type_id / pincode_id / area_id /
-  // rate_type_id — they're priced via kyc_rates(client, product,
-  // document_type) at case-create time and the snapshot is stored on the
-  // task row. We do NOT re-resolve from kyc_rates here.
+  // P4 (2026-06-02): KYC billing is now per reverification CYCLE. Each
+  // kyc_verification_cycles row with status=KYC_COMPLETED, billable=true,
+  // billed=false is one billable line — so a Day-1 KYC and a Day-20
+  // reverification of the SAME task each bill exactly once. Pricing stays
+  // FROZEN (cycle.rate_amount, snapshotted from the task's estimated_amount);
+  // we never re-resolve from kyc_rates here.
   const conditions: string[] = [
-    `c.client_id = $1`,
-    `vt.status = 'COMPLETED'`,
-    `vt.task_type = 'KYC'`,
-    `iit.id IS NULL`,
+    `ca.client_id = $1`,
+    `cyc.status = 'KYC_COMPLETED'`,
+    `cyc.billable = true`,
+    `cyc.billed = false`,
   ];
   const params: Array<string | number | string[] | number[]> = [clientId];
 
   if (scope.restricted) {
     if (scope.assignedClientIds && scope.assignedClientIds.length > 0) {
       params.push(scope.assignedClientIds);
-      conditions.push(`c.client_id = ANY($${params.length}::int[])`);
+      conditions.push(`ca.client_id = ANY($${params.length}::int[])`);
     }
     if (scope.assignedProductIds && scope.assignedProductIds.length > 0) {
       params.push(scope.assignedProductIds);
-      conditions.push(`c.product_id = ANY($${params.length}::int[])`);
+      conditions.push(`ca.product_id = ANY($${params.length}::int[])`);
     }
   }
 
   if (productId) {
     params.push(productId);
-    conditions.push(`c.product_id = $${params.length}`);
+    conditions.push(`ca.product_id = $${params.length}`);
   }
 
   if (selectedTaskIds.length > 0) {
     params.push(selectedTaskIds);
-    conditions.push(`vt.id = ANY($${params.length}::uuid[])`);
+    conditions.push(`cyc.verification_task_id = ANY($${params.length}::uuid[])`);
   }
 
   if (selectedCaseIds.length > 0) {
     params.push(selectedCaseIds);
-    conditions.push(`vt.case_id = ANY($${params.length}::uuid[])`);
+    conditions.push(`cyc.case_id = ANY($${params.length}::uuid[])`);
   }
 
   if (billingPeriodFrom) {
     params.push(billingPeriodFrom);
-    conditions.push(`vt.completed_at >= $${params.length}`);
+    conditions.push(`cyc.completed_at >= $${params.length}`);
   }
 
   if (billingPeriodTo) {
     params.push(billingPeriodTo);
-    conditions.push(`vt.completed_at <= $${params.length}`);
+    conditions.push(`cyc.completed_at <= $${params.length}`);
   }
 
   const result = await client.query<InvoiceKycTaskCandidateRow>(
     `SELECT
-       vt.id,
-       vt.case_id,
+       cyc.verification_task_id as id,
+       cyc.case_id,
        vt.task_title,
        vt.estimated_amount::text,
        vt.actual_amount::text,
        kdv.document_type_id,
        dt.name as document_type_name,
        dt.code as document_type_code,
-       c.client_id as client_id,
-       c.product_id as product_id
-     FROM verification_tasks vt
-     JOIN cases c ON c.id = vt.case_id
+       ca.client_id as client_id,
+       ca.product_id as product_id,
+       cyc.id as cycle_id,
+       cyc.cycle_number,
+       cyc.rate_amount::text
+     FROM kyc_verification_cycles cyc
+     JOIN verification_tasks vt ON vt.id = cyc.verification_task_id
+     JOIN cases ca ON ca.id = cyc.case_id
      LEFT JOIN kyc_document_verifications kdv
-       ON kdv.verification_task_id = vt.id AND kdv.deleted_at IS NULL
+       ON kdv.verification_task_id = cyc.verification_task_id AND kdv.deleted_at IS NULL
      LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
-     LEFT JOIN invoice_item_tasks iit ON iit.verification_task_id = vt.id
      WHERE ${conditions.join(' AND ')}
-     ORDER BY COALESCE(vt.completed_at, vt.updated_at, vt.created_at) ASC`,
+     ORDER BY COALESCE(cyc.completed_at, cyc.created_at) ASC`,
     params
   );
 
   return result.rows;
 };
 
-// Resolve the billing amount for a KYC task. Fails LOUD on missing snapshot
-// to match the field-task contract (B-1 audit fix). KYC pricing is FROZEN at
-// case-create time from kyc_rates; we never re-resolve.
+// Resolve the billing amount for a KYC cycle. Fails LOUD on missing snapshot
+// to match the field-task contract (B-1 audit fix). KYC pricing is FROZEN: the
+// cycle carries its own rate_amount (snapshotted at completion from the task's
+// estimated_amount); we never re-resolve from kyc_rates.
 const resolveKycTaskBillingAmount = (task: InvoiceKycTaskCandidateRow): { amount: number } => {
-  const candidate = task.actualAmount ?? task.estimatedAmount;
+  const candidate = task.rateAmount ?? task.actualAmount ?? task.estimatedAmount;
   const parsed = candidate !== null && candidate !== undefined ? Number(candidate) : NaN;
   if (!Number.isFinite(parsed) || parsed < 0) {
     throw new Error(
-      `Billing amount cannot be resolved for KYC task ${task.id} — ` +
-        `verification_tasks.actual_amount and estimated_amount are both NULL/invalid. ` +
+      `Billing amount cannot be resolved for KYC cycle ${task.cycleId} (task ${task.id}) — ` +
+        `cycle.rate_amount and the task actual/estimated snapshot are all NULL/invalid. ` +
         `KYC pricing snapshot is populated at case-create from kyc_rates; ` +
         `reconfigure kyc_rates for client=${task.clientId} product=${task.productId} ` +
         `documentType=${task.documentTypeId ?? 'null'} and re-create the task before billing.`
@@ -793,7 +415,12 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
         verificationTypeId: number | null;
         rateTypeId: number | null;
         productId: number | null;
-        linkedTasks: Array<{ taskId: string; caseId: string; billedAmount: number }>;
+        linkedTasks: Array<{
+          taskId: string;
+          caseId: string;
+          billedAmount: number;
+          kycCycleId: string | null;
+        }>;
       }> = [];
 
       if (useTaskDrivenGeneration) {
@@ -818,21 +445,24 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
                 taskId: task.id,
                 caseId: task.caseId,
                 billedAmount: resolved.amount,
+                kycCycleId: null,
               },
             ],
           });
         }
 
-        // C-2 + KYC billing (audit 2026-05-11): KYC tasks land in invoice_items
-        // with frozen pricing (no runtime re-resolution). verification_type_id
-        // and rate_type_id are NULL (KYC pricing is keyed on document_type
-        // via kyc_rates, snapshotted onto verification_tasks at
-        // case-create).
+        // P4 (2026-06-02): KYC cycles land in invoice_items with frozen pricing
+        // (no runtime re-resolution). verification_type_id and rate_type_id are
+        // NULL. Each cycle is a separate line; reverification cycles get a
+        // "Reverification #N" suffix so the invoice shows separate entries.
         for (const kycTask of kycTaskCandidates) {
           const resolved = resolveKycTaskBillingAmount(kycTask);
           const docLabel = kycTask.documentTypeName || kycTask.documentTypeCode || 'Document';
+          const base = kycTask.taskTitle || `KYC Verification — ${docLabel}`;
+          const description =
+            kycTask.cycleNumber > 1 ? `${base} (Reverification #${kycTask.cycleNumber})` : base;
           generatedLines.push({
-            description: kycTask.taskTitle || `KYC Verification — ${docLabel}`,
+            description,
             quantity: 1,
             unitPrice: resolved.amount,
             amount: resolved.amount,
@@ -844,6 +474,7 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
                 taskId: kycTask.id,
                 caseId: kycTask.caseId,
                 billedAmount: resolved.amount,
+                kycCycleId: kycTask.cycleId,
               },
             ],
           });
@@ -943,8 +574,8 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
         if (line.linkedTasks.length > 0) {
           const taskValues = line.linkedTasks
             .map((_t, i) => {
-              const o = i * 5;
-              return `($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5})`;
+              const o = i * 6;
+              return `($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5}, $${o + 6})`;
             })
             .join(', ');
           const taskParams = line.linkedTasks.flatMap(linkedTask => [
@@ -953,14 +584,30 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
             linkedTask.caseId,
             clientId,
             linkedTask.billedAmount,
+            linkedTask.kycCycleId,
           ]);
           await client.query(
             `INSERT INTO invoice_item_tasks (
-               invoice_item_id, verification_task_id, case_id, client_id, billed_amount
+               invoice_item_id, verification_task_id, case_id, client_id, billed_amount, kyc_cycle_id
              ) VALUES ${taskValues}`,
             taskParams
           );
         }
+      }
+
+      // P4 (2026-06-02): mark the billed KYC cycles so the per-cycle loader
+      // won't re-offer them. Each cycle is billed exactly once (enforced by
+      // uq_iit_kyc_cycle); this flag is the loader's "unbilled" signal.
+      const billedCycleIds = generatedLines
+        .flatMap(l => l.linkedTasks)
+        .map(t => t.kycCycleId)
+        .filter((id): id is string => !!id);
+      if (billedCycleIds.length > 0) {
+        await client.query(
+          `UPDATE kyc_verification_cycles SET billed = true, updated_at = now()
+             WHERE id = ANY($1::uuid[])`,
+          [billedCycleIds]
+        );
       }
 
       await recordInvoiceStatusHistory(
@@ -1275,6 +922,9 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
         pincodeId: number | null;
         clientId: number;
         productId: number;
+        kycCycleId: string | null;
+        kycCycleNumber: number | null;
+        kycRateAmount: string | null;
       }>(
         `SELECT
            iit.id as link_id,
@@ -1290,11 +940,15 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
            vt.task_type,
            p.id as pincode_id,
            c.client_id as client_id,
-           c.product_id as product_id
+           c.product_id as product_id,
+           iit.kyc_cycle_id,
+           cyc.cycle_number as kyc_cycle_number,
+           cyc.rate_amount::text as kyc_rate_amount
          FROM invoice_item_tasks iit
          JOIN verification_tasks vt ON vt.id = iit.verification_task_id
          JOIN cases c ON c.id = vt.case_id
          LEFT JOIN pincodes p ON p.id = vt.pincode_id
+         LEFT JOIN kyc_verification_cycles cyc ON cyc.id = iit.kyc_cycle_id
          JOIN invoice_items ii ON ii.id = iit.invoice_item_id
          WHERE ii.invoice_id = $1`,
         [Number(id)]
@@ -1321,6 +975,9 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
                 documentTypeCode: null,
                 clientId: linkedTask.clientId,
                 productId: linkedTask.productId,
+                cycleId: linkedTask.kycCycleId ?? '',
+                cycleNumber: linkedTask.kycCycleNumber ?? 1,
+                rateAmount: linkedTask.kycRateAmount,
               })
             : await resolveTaskBillingAmount({
                 id: linkedTask.verificationTaskId,
@@ -1520,6 +1177,17 @@ const transitionInvoiceStatus = async (
     // out of any future invoice. invoice_items + invoices remain (audit
     // trail intact via invoice_items.description + status_history).
     if (nextStatus === STATUS.CANCELLED) {
+      // P4 (2026-06-02): for KYC cycle lines, reset cycle.billed=false BEFORE
+      // deleting the link rows so the cancelled cycle re-enters the per-cycle
+      // loader and can be re-billed. The cycle row itself is NEVER deleted
+      // (immutable history).
+      await client.query(
+        `UPDATE kyc_verification_cycles c SET billed = false, updated_at = now()
+           FROM invoice_item_tasks iit
+           JOIN invoice_items ii ON ii.id = iit.invoice_item_id
+          WHERE iit.kyc_cycle_id = c.id AND ii.invoice_id = $1`,
+        [Number(id)]
+      );
       await client.query(
         `DELETE FROM invoice_item_tasks
          WHERE invoice_item_id IN (
@@ -1559,65 +1227,6 @@ const transitionInvoiceStatus = async (
     data: invoice,
     message,
   });
-};
-
-// GET /api/invoices - List invoices with pagination and filters
-export const getInvoices = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const scope = await resolveDataScope(req);
-    const response = await getInvoicesFromDb(req, scope);
-
-    logger.info(`Retrieved ${response.data.length} invoices from database`, {
-      userId: req.user?.id,
-      filters: req.query,
-    });
-
-    return res.json(response);
-  } catch (error) {
-    logger.error('Error retrieving invoices:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve invoices',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
-// GET /api/invoices/:id - Get invoice by ID
-export const getInvoiceById = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const scope = await resolveDataScope(req);
-    const id = getSingleParam(req.params.id);
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invoice ID is required',
-        error: { code: 'VALIDATION_ERROR' },
-      });
-    }
-    const invoice = await getInvoiceByIdFromDb(id, scope);
-
-    if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        message: 'Invoice not found',
-        error: { code: 'NOT_FOUND' },
-      });
-    }
-
-    logger.info(`Retrieved invoice ${id}`, { userId: req.user?.id });
-    return res.json({
-      success: true,
-      data: invoice,
-    });
-  } catch (error) {
-    logger.error('Error retrieving invoice:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve invoice',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
 };
 
 // POST /api/invoices - Create new invoice
@@ -2017,23 +1626,4 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
   }
 };
 
-// GET /api/invoices/stats - Get invoice statistics
-export const getInvoiceStats = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const scope = await resolveDataScope(req);
-    const period = typeof req.query.period === 'string' ? req.query.period : 'month';
-    const stats = await getInvoiceStatsFromDb(scope, period);
-
-    return res.json({
-      success: true,
-      data: stats,
-    });
-  } catch (error) {
-    logger.error('Error getting invoice stats:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to get invoice statistics',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
+export { getInvoices, getInvoiceById, getInvoiceStats } from './invoices/read';

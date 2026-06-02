@@ -17,7 +17,8 @@ import {
   Calendar,
   Download,
 } from 'lucide-react';
-import { useKYCTaskDetail, useVerifyKYCDocument } from '@/hooks/useKYC';
+import { useKYCTaskDetail, useVerifyKYCDocument, useKYCCycles } from '@/hooks/useKYC';
+import { usePermission } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { extractEditBlockedError } from '@/utils/editLock';
@@ -37,6 +38,10 @@ export const KYCVerificationPage: React.FC = () => {
 
   const { data: task, isLoading } = useKYCTaskDetail(taskId || '');
   const { mutateAsync: verify, isPending: isVerifying } = useVerifyKYCDocument();
+  // KYC Verifier read-only model (2026-06-02): only the Backend User (kyc.complete)
+  // may enter findings + complete. The read-only verifier sees view + download only.
+  const canComplete = usePermission('kyc.complete');
+  const { data: cycles = [] } = useKYCCycles(taskId || '');
 
   const handleVerify = async (status: 'PASS' | 'FAIL' | 'REFER') => {
     if (!taskId) {
@@ -267,7 +272,7 @@ export const KYCVerificationPage: React.FC = () => {
       </Card>
 
       {/* Verification Actions (only for PENDING) */}
-      {isPending && (
+      {isPending && canComplete && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Verification Decision</CardTitle>
@@ -319,6 +324,43 @@ export const KYCVerificationPage: React.FC = () => {
                 Refer
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* P6 (2026-06-02): per-cycle reverification history. Each cycle is an
+          immutable record — reverification never overwrites a prior cycle. */}
+      {cycles.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Verification Cycles ({cycles.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {cycles.map((cy) => (
+              <div
+                key={cy.cycle_number}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2 text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">Cycle {cy.cycle_number}</Badge>
+                  <Badge className={STATUS_COLORS[cy.final_status || ''] || ''}>{cy.status}</Badge>
+                  {cy.final_status && (
+                    <span className="text-muted-foreground">{cy.final_status}</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
+                  {cy.assigned_verifier_name && <span>Verifier: {cy.assigned_verifier_name}</span>}
+                  {cy.completed_by_name && <span>By: {cy.completed_by_name}</span>}
+                  {cy.completed_at && (
+                    <span>{format(new Date(cy.completed_at), 'dd MMM yyyy')}</span>
+                  )}
+                  {cy.rate_amount && <span>₹{cy.rate_amount}</span>}
+                  <Badge variant="outline" className={cy.billed ? 'bg-green-50' : 'bg-yellow-50'}>
+                    {cy.billed ? 'Billed' : 'Billable'}
+                  </Badge>
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
