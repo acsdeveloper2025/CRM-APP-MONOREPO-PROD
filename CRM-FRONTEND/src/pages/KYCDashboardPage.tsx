@@ -48,6 +48,7 @@ import {
   useKYCMis,
 } from '@/hooks/useKYC';
 import { usePermission } from '@/hooks/usePermissions';
+import { useAuth } from '@/hooks/useAuth';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -155,6 +156,13 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const canAnalyticsView = usePermission('analytics.view');
   const canViewMis = canReportGenerate || canAnalyticsView;
   const { data: mis } = useKYCMis(canViewMis);
+  // Read-only KYC Verifier portal (2026-06-02): a viewer holding none of the
+  // KYC workflow permissions. They get a simplified "My KYC" view — only the
+  // documents assigned to them, a single count card, no workflow-status cards
+  // (the workflow tabs are likewise hidden in navigation.ts).
+  const { user } = useAuth();
+  const isReadOnlyKyc =
+    !canComplete && !canAssignPerm && !canRevokePerm && !canReverifyPerm;
   const [revokeTask, setRevokeTask] = useState<{ id: string; taskNumber: string } | null>(null);
   const [revokeReasonCode, setRevokeReasonCode] = useState<string>('');
   const [revokeOtherReason, setRevokeOtherReason] = useState<string>('');
@@ -295,6 +303,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
     recheckedOnly: recheckedOnly || undefined,
+    assignedTo: isReadOnlyKyc ? user?.id : undefined,
   };
 
   const { data: taskData, isLoading, isError, refetch } = useKYCTasks(queryFilters);
@@ -357,8 +366,12 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{pageTitle}</h1>
-          <p className="text-sm text-muted-foreground">{pageSubtitle}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            {isReadOnlyKyc ? 'My KYC' : pageTitle}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isReadOnlyKyc ? 'Documents assigned to you — view & download' : pageSubtitle}
+          </p>
         </div>
       </div>
 
@@ -380,8 +393,26 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         </Card>
       )}
 
-      {/* 5-card stats grid (shared across all 3 routes — reflects full
-          in-scope KYC pool regardless of route status narrowing). */}
+      {/* Read-only KYC Verifier: single "Assigned to me" count — the workflow-
+          status cards are workflow noise they can't act on. */}
+      {isReadOnlyKyc ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <FileText className="h-8 w-8 text-muted-foreground" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">Assigned to me</p>
+                  <p className="text-2xl font-bold">{pagination.total ?? '—'}</p>
+                  <p className="text-xs text-muted-foreground">Documents to download</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+      /* 5-card stats grid (shared across all 3 routes — reflects full
+          in-scope KYC pool regardless of route status narrowing). */
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
@@ -430,19 +461,24 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <XCircle className="h-8 w-8 text-red-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Revoked</p>
-                <p className="text-2xl font-bold">{stats?.revoked ?? '—'}</p>
-                <p className="text-xs text-muted-foreground">Needs recheck</p>
+        {/* Revoked count only matters to roles that can revoke (admin/manager);
+            the Backend User can't revoke, so the card is hidden for them. */}
+        {canRevokePerm && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <XCircle className="h-8 w-8 text-red-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">Revoked</p>
+                  <p className="text-2xl font-bold">{stats?.revoked ?? '—'}</p>
+                  <p className="text-xs text-muted-foreground">Needs recheck</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
+      )}
 
       {/* P5/P6 (2026-06-02): KYC MIS — cycle-based metrics incl. reverification
           + billable/revenue counts. Sourced from kyc_verification_cycles. */}

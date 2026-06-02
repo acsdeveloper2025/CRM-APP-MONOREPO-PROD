@@ -345,6 +345,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       dateFrom,
       dateTo,
       recheckedOnly,
+      assignedTo,
     } = req.query;
 
     const pageNum = Math.max(1, parseInt(page as string));
@@ -373,6 +374,14 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
         `kdv.document_type_id = (SELECT id FROM document_types WHERE code = $${paramIndex} AND is_active = true LIMIT 1)`
       );
       params.push(documentType as string);
+      paramIndex++;
+    }
+    // KYC Verifier read-only portal (2026-06-02): scope the list to documents
+    // assigned to a specific verifier. The FE passes the current user id for
+    // the read-only KYC_VERIFIER so they see only "what's assigned to me".
+    if (assignedTo) {
+      conditions.push(`kdv.assigned_to = $${paramIndex}`);
+      params.push(assignedTo as string);
       paramIndex++;
     }
     // F9.1 (2026-05-26): "Recheck KYC" page filter — show only rows that

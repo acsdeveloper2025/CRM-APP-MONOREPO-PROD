@@ -170,41 +170,11 @@ export const navigationItems: NavigationItem[] = [
         label: 'Pending KYC',
         href: '/kyc-verification/pending-kyc',
         icon: Clock,
-        permissionCode: 'page.kyc',
-        permission: { resource: 'kyc', action: 'read' },
-      },
-      {
-        id: 'kyc-revoke',
-        label: 'Revoke KYC',
-        href: '/kyc-verification/revoke-kyc',
-        icon: XCircle,
-        // F9.3: hide for KYC verifier (no kyc.revoke perm); admin/manager see it.
-        permissionCode: 'kyc.revoke',
-        permission: { resource: 'kyc', action: 'revoke' },
-      },
-      {
-        id: 'kyc-in-progress',
-        label: 'In Progress KYC',
-        href: '/kyc-verification/in-progress-kyc',
-        icon: PlayCircle,
-        permissionCode: 'page.kyc',
-        permission: { resource: 'kyc', action: 'read' },
-      },
-      {
-        id: 'kyc-recheck',
-        label: 'Recheck KYC',
-        href: '/kyc-verification/recheck-kyc',
-        icon: Copy,
-        // F9.3: hide for KYC verifier (no kyc.recheck perm); admin/manager see it.
-        permissionCode: 'kyc.recheck',
-        permission: { resource: 'kyc', action: 'recheck' },
-      },
-      {
-        id: 'kyc-completed',
-        label: 'Completed KYC',
-        href: '/kyc-verification/completed-kyc',
-        icon: CheckSquare,
-        permissionCode: 'page.kyc',
+        // 2026-06-02 cleanup: the per-status tabs (In Progress / Completed /
+        // Revoke / Recheck) were removed — the in-page Status filter already
+        // covers them. Only the actionable "Pending" queue + "All KYC" remain.
+        // Gated on kyc.complete so the read-only KYC Verifier sees only All KYC.
+        permissionCode: 'kyc.complete',
         permission: { resource: 'kyc', action: 'read' },
       },
       {
