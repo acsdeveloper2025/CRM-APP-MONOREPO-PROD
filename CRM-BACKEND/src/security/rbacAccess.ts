@@ -21,6 +21,19 @@ const EXECUTION_PERMISSION_CODES = [
 // (same as field execution actor does for visit.*). See isKycExecutionActor.
 const KYC_EXECUTION_PERMISSION_CODES = ['kyc.verify', 'kyc.start'] as const;
 
+// 2026-06-03: the full set of KYC management/write actions. A user holding
+// NONE of these (but able to view KYC) is a read-only KYC verifier — see
+// isReadOnlyKycVerifier.
+const KYC_MANAGEMENT_PERMISSION_CODES = [
+  'kyc.verify',
+  'kyc.start',
+  'kyc.complete',
+  'kyc.assign',
+  'kyc.reverify',
+  'kyc.revoke',
+  'kyc.recheck',
+] as const;
+
 const SUPERVISORY_PERMISSION_CODES = [
   'case.assign',
   'case.reassign',
@@ -122,6 +135,33 @@ export const isKycExecutionActor = (user: AuthenticatedRequest['user'] | undefin
   const kycExecution = KYC_EXECUTION_PERMISSION_CODES.some(c => hasCode(codes, c));
   const supervisory = SUPERVISORY_PERMISSION_CODES.some(c => hasCode(codes, c));
   return kycExecution && !supervisory;
+};
+
+// 2026-06-03: read-only KYC verifier (post-redesign role). Can view/download
+// KYC but holds NONE of the KYC management actions, no supervisory/system scope,
+// and is not a field execution actor. Like a field user, they scope KYC lists +
+// row access to assigned_to=self — they have NO client/product assignment scope.
+// Fixes the regression where stripping kyc.verify/kyc.start (read-only reshape)
+// dropped them out of the isKycExecutionActor self-scope branch into the
+// scoped-ops client/product branch → 0 tasks when they have no client/product
+// assignments (the prod default for this role).
+export const isReadOnlyKycVerifier = (user: AuthenticatedRequest['user'] | undefined): boolean => {
+  if (!user) {
+    return false;
+  }
+  const codes = user.permissionCodes || [];
+  const systemScope = hasCode(codes, '*') || hasCode(codes, 'settings.manage');
+  if (systemScope) {
+    return false;
+  }
+  const canViewKyc = hasCode(codes, 'kyc.view') || hasCode(codes, 'page.kyc');
+  if (!canViewKyc) {
+    return false;
+  }
+  const hasKycManagement = KYC_MANAGEMENT_PERMISSION_CODES.some(c => hasCode(codes, c));
+  const supervisory = SUPERVISORY_PERMISSION_CODES.some(c => hasCode(codes, c));
+  const fieldExecution = EXECUTION_PERMISSION_CODES.some(c => hasCode(codes, c));
+  return !hasKycManagement && !supervisory && !fieldExecution;
 };
 
 export const requireOwnershipOnlyForExecutionActor = (
