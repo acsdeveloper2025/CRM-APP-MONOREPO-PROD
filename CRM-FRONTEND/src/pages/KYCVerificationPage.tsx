@@ -82,6 +82,10 @@ export const KYCVerificationPage: React.FC = () => {
   }
 
   const isPending = task.verificationStatus === 'PENDING';
+  // The backend /verify requires IN_PROGRESS, and the dashboard's "Start + Verify"
+  // moves the task to IN_PROGRESS before navigating here — so the decision card
+  // must show on IN_PROGRESS (not PENDING), or completion is impossible.
+  const canVerifyNow = task.verificationStatus === 'IN_PROGRESS' && canComplete;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -271,8 +275,9 @@ export const KYCVerificationPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Verification Actions (only for PENDING) */}
-      {isPending && canComplete && (
+      {/* Verification Decision (shown when the doc is IN_PROGRESS, i.e. after
+          Start + Verify) — only for the Backend User executor (kyc.complete). */}
+      {canVerifyNow && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Verification Decision</CardTitle>
