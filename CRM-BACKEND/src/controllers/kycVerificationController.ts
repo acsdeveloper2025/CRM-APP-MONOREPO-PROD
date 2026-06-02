@@ -613,12 +613,13 @@ export const getKycMis = async (req: AuthenticatedRequest, res: Response) => {
     const result = await query(
       `SELECT
          COUNT(*) as "totalAssigned",
+         -- Read-only verifier model: the verifier never moves a cycle to an
+         -- "external verification / report awaited" state (those were never
+         -- written). A cycle is simply assigned -> completed by the backend
+         -- user. "Pending" = assigned/reassigned and not yet completed.
          COUNT(*) FILTER (
-           WHERE cyc.status IN ('KYC_ASSIGNED','KYC_REASSIGNED','KYC_IN_EXTERNAL_VERIFICATION')
+           WHERE cyc.status IN ('KYC_ASSIGNED','KYC_REASSIGNED')
          ) as "pendingWithVerifier",
-         COUNT(*) FILTER (
-           WHERE cyc.status = 'KYC_IN_EXTERNAL_VERIFICATION' AND cyc.report_received_at IS NULL
-         ) as "reportAwaited",
          COUNT(*) FILTER (WHERE cyc.status = 'KYC_COMPLETED') as completed,
          COUNT(*) FILTER (WHERE cyc.cycle_number > 1) as "reverificationCount",
          COUNT(*) FILTER (WHERE cyc.billable = true) as "billableCount",
@@ -652,7 +653,6 @@ export const getKycMis = async (req: AuthenticatedRequest, res: Response) => {
       data: {
         totalAssigned: num('totalAssigned'),
         pendingWithVerifier: num('pendingWithVerifier'),
-        reportAwaited: num('reportAwaited'),
         completed: num('completed'),
         reverificationCount: num('reverificationCount'),
         billableCount: num('billableCount'),

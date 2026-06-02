@@ -27,9 +27,7 @@ import {
 } from '@/components/ui/unified-search-filter-layout';
 import {
   FileText,
-  Clock,
   PlayCircle,
-  CheckCircle,
   Download,
   RefreshCw,
   Eye,
@@ -308,13 +306,6 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
 
   const { data: taskData, isLoading, isError, refetch } = useKYCTasks(queryFilters);
 
-  // 5-card stats from new /kyc/tasks/stats endpoint. Ignores route status
-  // narrowing so counters cover the full in-scope KYC pool.
-  const { data: stats } = useQuery({
-    queryKey: ['kyc-tasks-stats'],
-    queryFn: () => kycService.getStats(),
-  });
-
   const tasks = taskData?.data || [];
   const pagination = taskData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
 
@@ -393,9 +384,10 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         </Card>
       )}
 
-      {/* Read-only KYC Verifier: single "Assigned to me" count — the workflow-
-          status cards are workflow noise they can't act on. */}
-      {isReadOnlyKyc ? (
+      {/* Read-only KYC Verifier: single "Assigned to me" count. Workflow
+          operators (backend/admin) get the KYC MIS row below instead — the
+          old per-status card grid was redundant with MIS + the Status filter. */}
+      {isReadOnlyKyc && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-6">
@@ -410,74 +402,6 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
             </CardContent>
           </Card>
         </div>
-      ) : (
-      /* 5-card stats grid (shared across all 3 routes — reflects full
-          in-scope KYC pool regardless of route status narrowing). */
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <FileText className="h-8 w-8 text-muted-foreground" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Total KYC</p>
-                <p className="text-2xl font-bold">{stats?.total ?? '—'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Clock className="h-8 w-8 text-amber-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold">
-                  {(stats?.pending ?? 0) + (stats?.assigned ?? 0)}
-                </p>
-                <p className="text-xs text-muted-foreground">Pending + Assigned</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <PlayCircle className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">In Progress</p>
-                <p className="text-2xl font-bold">{stats?.inProgress ?? '—'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold">{stats?.completed ?? '—'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Revoked count only matters to roles that can revoke (admin/manager);
-            the Backend User can't revoke, so the card is hidden for them. */}
-        {canRevokePerm && (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <XCircle className="h-8 w-8 text-red-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Revoked</p>
-                  <p className="text-2xl font-bold">{stats?.revoked ?? '—'}</p>
-                  <p className="text-xs text-muted-foreground">Needs recheck</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
       )}
 
       {/* P5/P6 (2026-06-02): KYC MIS — cycle-based metrics incl. reverification
@@ -488,11 +412,10 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
             <CardTitle className="text-base">KYC MIS</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
               {[
-                { label: 'Total Assigned', value: mis.totalAssigned },
-                { label: 'Pending w/ Verifier', value: mis.pendingWithVerifier },
-                { label: 'Report Awaited', value: mis.reportAwaited },
+                { label: 'Total', value: mis.totalAssigned },
+                { label: 'Pending', value: mis.pendingWithVerifier },
                 { label: 'Completed', value: mis.completed },
                 { label: 'Reverifications', value: mis.reverificationCount },
                 { label: 'Billable', value: mis.billableCount },

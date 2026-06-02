@@ -798,24 +798,12 @@ export const AppRoutes: React.FC = () => {
             }
           />
 
-          {/* KYC Verification routes — sidebar sub-pages */}
+          {/* KYC Verification — single page (status slicing via in-page filter) */}
           <Route
             path="/kyc-verification/all-kyc"
             element={
               <ProtectedRoute permission="page.kyc">
                 <KYCDashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/kyc-verification/pending-kyc"
-            element={
-              <ProtectedRoute permission="page.kyc">
-                <KYCDashboardPage
-                  defaultStatus="PENDING"
-                  pageTitle="Pending KYC Verification"
-                  pageSubtitle="KYC documents awaiting verification"
-                />
               </ProtectedRoute>
             }
           />
