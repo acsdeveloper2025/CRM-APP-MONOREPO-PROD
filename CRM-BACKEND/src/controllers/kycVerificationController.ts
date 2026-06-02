@@ -15,6 +15,7 @@ import {
   hasSystemScopeBypass,
   isFieldExecutionActor,
   isKycExecutionActor,
+  isReadOnlyKycVerifier,
   isScopedOperationsUser,
 } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
@@ -118,6 +119,7 @@ async function buildKycTasksBaseWhereClause(
   const isAdmin = hasSystemScopeBypass(req.user);
   const isExecutionActor = isFieldExecutionActor(req.user);
   const isKycActor = isKycExecutionActor(req.user);
+  const isReadOnlyVerifier = isReadOnlyKycVerifier(req.user);
   const isScopedOps = isScopedOperationsUser(req.user);
 
   if (req.user?.id && !isAdmin) {
@@ -128,7 +130,7 @@ async function buildKycTasksBaseWhereClause(
     // when explicitly assigned. Checked BEFORE isScopedOps because
     // KYC_VERIFIER also has case.view (which classifies as isScopedOps
     // and would otherwise fall to a client/product branch with 0 hits).
-    if (isExecutionActor || isKycActor) {
+    if (isExecutionActor || isKycActor || isReadOnlyVerifier) {
       baseConditions.push(
         `(kdv.assigned_to = $${baseParamIndex} OR vt.assigned_to = $${baseParamIndex})`
       );
@@ -231,8 +233,10 @@ const requireKycRowAccess = async (
   }
   const caseId = lookup.rows[0].caseId;
   const assignedTo = lookup.rows[0].assignedTo;
-  // KYC execution actor self-assigned shortcut — bypasses case-scope check.
-  if (isKycExecutionActor(req.user) && assignedTo === userId) {
+  // KYC execution actor / read-only verifier self-assigned shortcut — bypasses
+  // case-scope check (they have no client/product scope; access keys off the
+  // doc being assigned to them).
+  if ((isKycExecutionActor(req.user) || isReadOnlyKycVerifier(req.user)) && assignedTo === userId) {
     return { ok: true, caseId };
   }
   const allowed = await enforceBackendUserCaseScope(userId, req.user, caseId, req.activeScope);

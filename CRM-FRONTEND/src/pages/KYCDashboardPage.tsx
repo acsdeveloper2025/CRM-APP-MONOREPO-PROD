@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,9 @@ import {
 } from '@/components/ui/unified-search-filter-layout';
 import {
   FileText,
+  FileCheck,
+  Clock,
+  CheckCircle,
   PlayCircle,
   Download,
   RefreshCw,
@@ -422,31 +426,38 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         </div>
       )}
 
-      {/* P5/P6 (2026-06-02): KYC MIS — cycle-based metrics incl. reverification
-          + billable/revenue counts. Sourced from kyc_verification_cycles. */}
-      {canViewMis && mis && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">KYC MIS</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
-              {[
-                { label: 'Total', value: mis.totalAssigned },
-                { label: 'Pending', value: mis.pendingWithVerifier },
-                { label: 'Completed', value: mis.completed },
-                { label: 'Reverifications', value: mis.reverificationCount },
-                { label: 'Billable', value: mis.billableCount },
-                { label: 'Revenue (₹)', value: mis.eligibleRevenue },
-              ].map((m) => (
-                <div key={m.label}>
-                  <p className="text-2xl font-bold">{m.value}</p>
-                  <p className="text-xs text-muted-foreground">{m.label}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* KYC summary cards — cycle-based counts (Pending + Completed model).
+          Sourced from kyc_verification_cycles via /api/kyc/mis. */}
+      {!isReadOnlyKyc && canViewMis && mis && (
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-3">
+          <StatsCard
+            title="Total KYC"
+            value={mis.totalAssigned}
+            description="All documents"
+            icon={FileCheck}
+            color="text-blue-600"
+            onClick={() => navigate('/kyc-verification/all-kyc')}
+            className="cursor-pointer"
+          />
+          <StatsCard
+            title="Pending"
+            value={mis.pendingWithVerifier}
+            description="Awaiting verification"
+            icon={Clock}
+            color="text-amber-600"
+            onClick={() => navigate('/kyc-verification/pending-kyc')}
+            className="cursor-pointer"
+          />
+          <StatsCard
+            title="Completed"
+            value={mis.completed}
+            description="Verification completed"
+            icon={CheckCircle}
+            color="text-green-600"
+            onClick={() => navigate('/kyc-verification/completed-kyc')}
+            className="cursor-pointer"
+          />
+        </div>
       )}
 
       <UnifiedSearchFilterLayout

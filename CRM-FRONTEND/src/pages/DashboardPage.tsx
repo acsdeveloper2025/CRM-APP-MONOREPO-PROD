@@ -5,6 +5,7 @@ import { StatsCard } from '@/components/dashboard/StatsCard';
 import { CaseStatusChart } from '@/components/dashboard/CaseStatusChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
 import { useDashboardKPI } from '@/hooks/useDashboardKPI';
+import { useKYCMis } from '@/hooks/useKYC';
 import { usePermission } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -20,9 +21,6 @@ import {
   AlertTriangle,
   FileCheck,
   Clock,
-  ShieldCheck,
-  ShieldX,
-  AlertCircle,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -49,6 +47,14 @@ export const DashboardPage: React.FC = () => {
     hasKYCPagePermission || hasCaseViewPermission || hasCaseCreatePermission || isCaseTouchingRole;
   const hasCasesAccess = usePermission('page.cases');
   const hasTasksAccess = usePermission('page.tasks');
+
+  // KYC card now mirrors the cycle-based KYC MIS (Pending+Completed model).
+  // Gated like the KYC-page MIS row (report/analytics viewers only).
+  // Call each usePermission unconditionally (rules-of-hooks) then combine.
+  const canReportGenerate = usePermission('report.generate');
+  const canAnalyticsView = usePermission('analytics.view');
+  const canViewMis = canReportGenerate || canAnalyticsView;
+  const { data: kycMis } = useKYCMis(canViewMis);
 
   // Fetch dashboard data via Unified KPI Engine
   const {
@@ -285,14 +291,14 @@ export const DashboardPage: React.FC = () => {
         />
       </div>
 
-      {/* KYC Verification Stats */}
-      {hasKYCAccess && (
+      {/* KYC Verification Stats — cycle-based (Pending + Completed model). */}
+      {hasKYCAccess && canViewMis && kycMis && (
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">KYC Document Verification</h2>
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-3">
             <StatsCard
               title="Total KYC"
-              value={kycStats.total}
+              value={kycMis.totalAssigned}
               description="All documents"
               icon={FileCheck}
               color="text-blue-600"
@@ -301,38 +307,20 @@ export const DashboardPage: React.FC = () => {
             />
             <StatsCard
               title="Pending"
-              value={kycStats.pending}
+              value={kycMis.pendingWithVerifier}
               description="Awaiting verification"
               icon={Clock}
               color="text-amber-600"
-              onClick={() => navigate('/kyc-verification/all-kyc')}
+              onClick={() => navigate('/kyc-verification/pending-kyc')}
               className="cursor-pointer"
             />
             <StatsCard
-              title="Passed"
-              value={kycStats.passed}
-              description="Verified successfully"
-              icon={ShieldCheck}
+              title="Completed"
+              value={kycMis.completed}
+              description="Verification completed"
+              icon={CheckCircle}
               color="text-green-600"
-              onClick={() => navigate('/kyc-verification/all-kyc')}
-              className="cursor-pointer"
-            />
-            <StatsCard
-              title="Failed"
-              value={kycStats.failed}
-              description="Verification failed"
-              icon={ShieldX}
-              color="text-red-600"
-              onClick={() => navigate('/kyc-verification/all-kyc')}
-              className="cursor-pointer"
-            />
-            <StatsCard
-              title="Referred"
-              value={kycStats.referred}
-              description="Needs further review"
-              icon={AlertCircle}
-              color="text-purple-600"
-              onClick={() => navigate('/kyc-verification/all-kyc')}
+              onClick={() => navigate('/kyc-verification/completed-kyc')}
               className="cursor-pointer"
             />
           </div>
