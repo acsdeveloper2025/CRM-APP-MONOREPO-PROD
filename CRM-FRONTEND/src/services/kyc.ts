@@ -299,7 +299,6 @@ export interface KYCCycle {
 export interface KYCMis {
   totalAssigned: number;
   pendingWithVerifier: number;
-  reportAwaited: number;
   completed: number;
   reverificationCount: number;
   billableCount: number;

@@ -158,34 +158,15 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
   {
+    // 2026-06-02: collapsed to a SINGLE KYC page (no per-status sub-tabs).
+    // The in-page Status filter covers status slicing; the dashboard cards
+    // surface the Pending / Completed counts.
     id: 'kyc-verification',
     label: 'KYC Verification',
     href: '/kyc-verification/all-kyc',
     icon: FileCheck,
     permissionCode: 'page.kyc',
     permission: { resource: 'kyc', action: 'read' },
-    children: [
-      {
-        id: 'kyc-pending',
-        label: 'Pending KYC',
-        href: '/kyc-verification/pending-kyc',
-        icon: Clock,
-        // 2026-06-02 cleanup: the per-status tabs (In Progress / Completed /
-        // Revoke / Recheck) were removed — the in-page Status filter already
-        // covers them. Only the actionable "Pending" queue + "All KYC" remain.
-        // Gated on kyc.complete so the read-only KYC Verifier sees only All KYC.
-        permissionCode: 'kyc.complete',
-        permission: { resource: 'kyc', action: 'read' },
-      },
-      {
-        id: 'kyc-all',
-        label: 'All KYC',
-        href: '/kyc-verification/all-kyc',
-        icon: List,
-        permissionCode: 'page.kyc',
-        permission: { resource: 'kyc', action: 'read' },
-      },
-    ],
   },
   {
     id: 'data-entry-management',
