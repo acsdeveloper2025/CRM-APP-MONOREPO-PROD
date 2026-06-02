@@ -20,6 +20,7 @@ import {
   Upload,
   Download,
   UserPlus,
+  PlayCircle,
   Loader2,
 } from 'lucide-react';
 import {
@@ -27,6 +28,7 @@ import {
   useVerifyKYCDocument,
   useUploadKYCDocument,
   useAssignKYCTask,
+  useStartKYCTask,
 } from '@/hooks/useKYC';
 import type { KYCTask } from '@/services/kyc';
 import { toast } from 'sonner';
@@ -55,6 +57,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
   const { mutateAsync: verifyDoc, isPending: isVerifying } = useVerifyKYCDocument();
   const { mutateAsync: uploadDoc } = useUploadKYCDocument();
   const { mutateAsync: assignDoc } = useAssignKYCTask();
+  const { mutateAsync: startKyc, isPending: isStarting } = useStartKYCTask();
   // KYC Verifier read-only model (2026-06-02): findings entry / upload / assign
   // require kyc.complete (Backend User). The read-only verifier sees view only,
   // even though CaseDetailPage passes readonly=false.
@@ -128,6 +131,16 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
     }
   };
 
+  // Start moves the doc PENDING/ASSIGNED → IN_PROGRESS. The backend /verify
+  // requires IN_PROGRESS, so the Pass/Fail card below only appears after this.
+  const handleStart = async (docId: string) => {
+    try {
+      await startKyc(docId);
+    } catch {
+      toast.error('Failed to start verification');
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -182,6 +195,9 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
           const StatusIcon = statusConf.icon;
           const isExpanded = expandedDoc === doc.id;
           const isPending = doc.verificationStatus === 'PENDING';
+          const isInProgress = doc.verificationStatus === 'IN_PROGRESS';
+          const canStart =
+            doc.verificationStatus === 'PENDING' || doc.verificationStatus === 'ASSIGNED';
           const customFields =
             doc.documentDetails && Object.keys(doc.documentDetails).length > 0
               ? doc.documentDetails
@@ -336,8 +352,9 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                     </div>
                   )}
 
-                  {/* Previous verification result */}
-                  {!isPending && (
+                  {/* Previous verification result (terminal states only — on
+                      IN_PROGRESS the verify card below is shown instead) */}
+                  {!isPending && !isInProgress && (
                     <div
                       className={`border rounded p-3 ${
                         doc.verificationStatus === 'PASS'
@@ -361,8 +378,24 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                     </div>
                   )}
 
-                  {/* Verification actions (only for PENDING, hidden in readonly mode) */}
-                  {isPending && !effectiveReadonly && (
+                  {/* Start — moves PENDING/ASSIGNED → IN_PROGRESS so the doc can
+                      be verified (mirrors the dashboard's Start + Verify). */}
+                  {canStart && !effectiveReadonly && (
+                    <div className="pt-2 border-t">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleStart(doc.id)}
+                        disabled={isStarting}
+                      >
+                        <PlayCircle className="h-3.5 w-3.5 mr-1" /> Start Verification
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Verification actions — shown once IN_PROGRESS (after Start),
+                      hidden in readonly mode. */}
+                  {isInProgress && !effectiveReadonly && (
                     <div className="space-y-3 pt-2 border-t">
                       <div>
                         <Label className="text-xs">Remarks (Optional)</Label>
