@@ -1006,11 +1006,17 @@ export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) =>
 
     // Also update the parent verification_task assignment
     const verificationTaskId = result.rows[0].verificationTaskId as string;
+    // M1 (2026-06-03): always propagate the reassignment to the parent vt for
+    // any non-terminal task. The old guard (status='PENDING' OR assigned_to IS
+    // NULL) skipped already-ASSIGNED tasks, leaving vt.assigned_to pointing at
+    // the PREVIOUS verifier — and since the KYC list scope is
+    // (kdv.assigned_to=self OR vt.assigned_to=self), the prior verifier kept
+    // seeing a doc no longer theirs. Terminal tasks (COMPLETED/REVOKED) stay put.
     await query(
       `UPDATE verification_tasks
        SET assigned_to = $1, assigned_by = $2, assigned_at = CURRENT_TIMESTAMP,
            status = 'ASSIGNED', updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3 AND (status = 'PENDING' OR assigned_to IS NULL)`,
+       WHERE id = $3 AND status NOT IN ('COMPLETED', 'REVOKED')`,
       [assignedTo, userId, verificationTaskId]
     );
 
@@ -1709,6 +1715,17 @@ export const recheckCloneKYCTask = async (req: AuthenticatedRequest, res: Respon
       client.release();
     }
   } catch (error) {
+    // M2 (2026-06-03): the pre-check for an existing active KYC task is outside
+    // the tx, so two concurrent rechecks can both pass it and the second INSERT
+    // trips verification_tasks_active_unique_idx (23505). Remap that race to the
+    // same clean 409 the pre-check returns, instead of a generic 500.
+    if ((error as { code?: string })?.code === '23505') {
+      return res.status(409).json({
+        success: false,
+        message: 'An active KYC task already exists for this case.',
+        error: { code: 'KYC_ACTIVE_EXISTS' },
+      });
+    }
     logger.error('Error creating KYC recheck clone:', error);
     res.status(500).json({ success: false, message: 'Failed to create recheck' });
   }
@@ -1955,6 +1972,26 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
       resolvedCaseUuid = caseResult.rows[0].id;
     }
 
+    // C3 (2026-06-03): row-scope this case-doc list. Without it, any holder of
+    // kyc.view/case.view could enumerate another case's KYC docs (incl. file
+    // paths) by iterating case ids. Admins bypass; read-only verifiers are
+    // restricted to their own assigned docs (no client/product scope); everyone
+    // else must pass the backend-user case-scope check.
+    const requesterId = req.user?.id || '';
+    const readOnlyVerifier = isReadOnlyKycVerifier(req.user);
+    if (!hasSystemScopeBypass(req.user) && !readOnlyVerifier) {
+      const allowed = await enforceBackendUserCaseScope(
+        requesterId,
+        req.user,
+        resolvedCaseUuid,
+        req.activeScope
+      );
+      if (!allowed) {
+        res.status(404).json({ success: false, message: 'Case not found' });
+        return;
+      }
+    }
+
     const result = await query(
       `SELECT
         kdv.id,
@@ -1981,8 +2018,9 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
        -- NEW-CRIT-1 (AUDIT 2026-05-17): hide soft-deleted from case-doc list.
        WHERE kdv.case_id = $1 AND kdv.deleted_at IS NULL
+       ${readOnlyVerifier ? 'AND kdv.assigned_to = $2' : ''}
        ORDER BY kdt.sort_order, kdv.created_at`,
-      [resolvedCaseUuid]
+      readOnlyVerifier ? [resolvedCaseUuid, requesterId] : [resolvedCaseUuid]
     );
 
     res.json({ success: true, data: result.rows });
