@@ -23,11 +23,18 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { extractEditBlockedError } from '@/utils/editLock';
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  PASS: 'bg-green-100 text-green-800',
-  FAIL: 'bg-red-100 text-red-800',
-  REFER: 'bg-purple-100 text-purple-800',
+// KYC redesign (2026-06-02): users see only Pending / Completed.
+const kycDisplayStatus = (status: string): { label: string; color: string } =>
+  status === 'COMPLETED'
+    ? { label: 'Completed', color: 'bg-green-100 text-green-800' }
+    : { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' };
+
+// Per-cycle outcome tint (cycle history panel).
+const OUTCOME_COLORS: Record<string, string> = {
+  Positive: 'bg-green-100 text-green-800',
+  Negative: 'bg-red-100 text-red-800',
+  Fraud: 'bg-red-100 text-red-800',
+  Refer: 'bg-purple-100 text-purple-800',
 };
 
 export const KYCVerificationPage: React.FC = () => {
@@ -81,11 +88,12 @@ export const KYCVerificationPage: React.FC = () => {
     return <div className="text-center py-8">KYC task not found</div>;
   }
 
-  const isPending = task.verificationStatus === 'PENDING';
-  // The backend /verify requires IN_PROGRESS, and the dashboard's "Start + Verify"
-  // moves the task to IN_PROGRESS before navigating here — so the decision card
-  // must show on IN_PROGRESS (not PENDING), or completion is impossible.
-  const canVerifyNow = task.verificationStatus === 'IN_PROGRESS' && canComplete;
+  // KYC redesign (2026-06-02): no /start step. The decision card shows for any
+  // non-terminal (Pending) document when the user can complete; completion
+  // records the outcome directly. Terminal = COMPLETED/REVOKED (read-only).
+  const isTerminal =
+    task.verificationStatus === 'COMPLETED' || task.verificationStatus === 'REVOKED';
+  const canVerifyNow = !isTerminal && canComplete;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -100,21 +108,14 @@ export const KYCVerificationPage: React.FC = () => {
             Case #{task.caseNumber} — {task.taskNumber}
           </p>
         </div>
-        <Badge className={STATUS_COLORS[task.verificationStatus] || ''}>
-          {task.verificationStatus}
+        <Badge className={kycDisplayStatus(task.verificationStatus).color}>
+          {kycDisplayStatus(task.verificationStatus).label}
         </Badge>
       </div>
 
-      {/* Non-PENDING info banner — explains why Pass/Fail/Refer buttons
-          are hidden. Before this, IN_PROGRESS / COMPLETED docs showed
-          the page with no action and no explanation. */}
-      {!isPending && (
+      {/* Terminal-state banner — explains why the decision card is hidden. */}
+      {isTerminal && (
         <div className="bg-muted border border-border rounded-lg px-4 py-3 text-sm">
-          {task.verificationStatus === 'IN_PROGRESS' && (
-            <span>
-              This KYC document is currently being processed; verification actions are unavailable.
-            </span>
-          )}
           {task.verificationStatus === 'COMPLETED' && (
             <span>
               This KYC document has already been verified. The outcome is final and cannot be
@@ -125,9 +126,6 @@ export const KYCVerificationPage: React.FC = () => {
             <span>
               This KYC document has been revoked; no further verification actions can be taken.
             </span>
-          )}
-          {task.verificationStatus === 'ASSIGNED' && (
-            <span>This KYC document is assigned but not yet picked up for verification.</span>
           )}
         </div>
       )}
@@ -246,8 +244,8 @@ export const KYCVerificationPage: React.FC = () => {
             </div>
           )}
 
-          {/* Previous verification result */}
-          {!isPending && (
+          {/* Previous verification result (terminal states only) */}
+          {isTerminal && (
             <div
               className={`border rounded-lg p-4 ${
                 task.verificationStatus === 'PASS'
@@ -348,7 +346,9 @@ export const KYCVerificationPage: React.FC = () => {
               >
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">Cycle {cy.cycle_number}</Badge>
-                  <Badge className={STATUS_COLORS[cy.final_status || ''] || ''}>{cy.status}</Badge>
+                  <Badge className={OUTCOME_COLORS[cy.final_status || ''] || 'bg-muted text-foreground'}>
+                    {cy.status}
+                  </Badge>
                   {cy.final_status && (
                     <span className="text-muted-foreground">{cy.final_status}</span>
                   )}

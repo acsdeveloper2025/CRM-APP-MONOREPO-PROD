@@ -767,16 +767,12 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
     try {
       await client.query('BEGIN');
 
-      // F9.1 (2026-05-26): require IN_PROGRESS — verifier must call /start
-      // first. Mirrors field-task workflow (PENDING → IN_PROGRESS → COMPLETED).
-      // Without this guard, a direct API call could (a) skip the start step
-      // entirely or (b) overwrite a recorded final_status on a COMPLETED
-      // row, breaking the audit trail. IN_PROGRESS is the only valid state
-      // for verify.
-      // FOR UPDATE: serialize concurrent verify calls on the same document so a
-      // double-submit can't both pass the IN_PROGRESS gate and double-fire the
-      // completion side effects (snapshotFinancials, cycle snapshot, audit,
-      // post-completion hooks). Matches start/revoke/recheck/reverify.
+      // KYC redesign (2026-06-02): NO separate /start step. A KYC task is
+      // completed directly from its working state — PENDING or ASSIGNED (or
+      // legacy IN_PROGRESS). Reject only terminal states (COMPLETED/REVOKED).
+      // FOR UPDATE serializes concurrent verify calls so a double-submit can't
+      // both pass the editable gate and double-fire the completion side effects
+      // (snapshotFinancials, cycle snapshot, audit, post-completion hooks).
       const statusCheck = await client.query<{ verificationStatus: string }>(
         `SELECT verification_status FROM kyc_document_verifications
          WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
@@ -787,21 +783,10 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
         return res.status(404).json({ success: false, message: 'KYC task not found' });
       }
       const currentStatus = statusCheck.rows[0].verificationStatus;
-      if (currentStatus !== 'IN_PROGRESS') {
+      const editCheck = checkEditable(currentStatus);
+      if (!editCheck.editable) {
         await client.query('ROLLBACK');
-        const editCheck = checkEditable(currentStatus);
-        // For COMPLETED/REVOKED return canonical EDIT_BLOCKED so FE shows
-        // the standard "cannot edit" copy. For PENDING/ASSIGNED (still
-        // editable but not a valid verify-source state) return
-        // INVALID_STATE_TRANSITION — FE should call /start first.
-        if (!editCheck.editable) {
-          return res.status(409).json(buildEditBlockedResponse('KYC document', editCheck));
-        }
-        return res.status(409).json({
-          success: false,
-          message: `KYC document must be in IN_PROGRESS state to verify; current state is ${currentStatus}. Call /start first.`,
-          error: { code: 'INVALID_STATE_TRANSITION', currentStatus },
-        });
+        return res.status(409).json(buildEditBlockedResponse('KYC document', editCheck));
       }
 
       // Workflow advances to COMPLETED; outcome lands in final_status.
@@ -859,6 +844,22 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
         } else if ((resultMap['Refer'] || 0) > 0) {
           overallOutcome = 'KYC_REFER';
         }
+
+        // KYC redesign (2026-06-02): there is no /start, so the parent task may
+        // still be PENDING/ASSIGNED here. The shared task_status_transitions
+        // trigger has no ASSIGNED→COMPLETED edge, so step the parent through
+        // PENDING→ASSIGNED→IN_PROGRESS (trigger-valid hops, internal only — the
+        // user never sees IN_PROGRESS) before the →COMPLETED update.
+        await client.query(
+          `UPDATE verification_tasks SET status='ASSIGNED', updated_at=CURRENT_TIMESTAMP
+           WHERE id = $1 AND status = 'PENDING'`,
+          [verificationTaskId]
+        );
+        await client.query(
+          `UPDATE verification_tasks SET status='IN_PROGRESS', started_at=COALESCE(started_at, CURRENT_TIMESTAMP), updated_at=CURRENT_TIMESTAMP
+           WHERE id = $1 AND status = 'ASSIGNED'`,
+          [verificationTaskId]
+        );
 
         await client.query(
           `UPDATE verification_tasks

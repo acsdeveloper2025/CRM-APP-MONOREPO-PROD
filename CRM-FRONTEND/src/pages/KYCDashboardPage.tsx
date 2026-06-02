@@ -40,7 +40,6 @@ import {
   useKYCTasks,
   useKYCDocumentTypes,
   useAssignKYCTask,
-  useStartKYCTask,
   useRevokeKYCTask,
   useReverifyKYCTask,
   useKYCMis,
@@ -86,13 +85,13 @@ const SORT_OPTIONS: Array<{
   },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  ASSIGNED: 'bg-blue-100 text-blue-800 border-blue-200',
-  IN_PROGRESS: 'bg-purple-100 text-purple-800 border-purple-200',
-  COMPLETED: 'bg-green-100 text-green-800 border-green-200',
-  REVOKED: 'bg-red-100 text-red-800 border-red-200',
-};
+// KYC redesign (2026-06-02): users see only two states — Pending / Completed.
+// Every non-completed engine state (PENDING/ASSIGNED/IN_PROGRESS/REVOKED) is
+// presented as "Pending"; COMPLETED is "Completed".
+const kycDisplayStatus = (status: string): { label: string; color: string } =>
+  status === 'COMPLETED'
+    ? { label: 'Completed', color: 'bg-green-100 text-green-800 border-green-200' }
+    : { label: 'Pending', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
 
 const CATEGORY_COLORS: Record<string, string> = {
   IDENTITY: 'bg-blue-100 text-blue-700',
@@ -132,8 +131,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const [reassignTo, setReassignTo] = useState<string>('');
   const { mutateAsync: assignKyc, isPending: isReassigning } = useAssignKYCTask();
 
-  // F9.1: KYC state-transition state + mutations
-  const { mutateAsync: startKyc, isPending: isStarting } = useStartKYCTask();
+  // KYC state-transition mutations
   const { mutateAsync: revokeKyc, isPending: isRevoking } = useRevokeKYCTask();
   const { mutateAsync: reverifyKyc, isPending: isReverifying } = useReverifyKYCTask();
   // KYC Verifier read-only model (2026-06-02): action controls are permission-
@@ -200,20 +198,10 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
     }
   };
 
-  // F9.1: Start + Verify composite — if state isn't IN_PROGRESS, call /start
-  // first then route to the verify page. One click for the verifier.
-  const handleStartAndVerify = async (task: { id: string; verificationStatus: string }) => {
-    try {
-      if (task.verificationStatus !== 'IN_PROGRESS') {
-        await startKyc(task.id);
-      }
-      navigate(`/kyc-verification/verify/${task.id}`);
-    } catch (error) {
-      toast.error(
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-          'Failed to start verification'
-      );
-    }
+  // KYC redesign (2026-06-02): no /start step. The backend user opens the
+  // completion screen directly and records the outcome there.
+  const handleComplete = (task: { id: string }) => {
+    navigate(`/kyc-verification/verify/${task.id}`);
   };
 
   const handleRevokeSubmit = async () => {
@@ -282,12 +270,11 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
 
   const { data: docTypes = [] } = useKYCDocumentTypes();
 
-  // The Completed-KYC route maps to `statusNot=PENDING` (everything that
-  // is no longer pending). When defaultStatus='COMPLETED' AND the user
-  // hasn't picked a specific status in the dropdown, hand statusNot to BE.
-  const isCompletedPage = defaultStatus === 'COMPLETED';
-  const effectiveStatus = status !== 'ALL' && !isCompletedPage ? status : undefined;
-  const effectiveStatusNot = isCompletedPage && status === 'ALL' ? 'PENDING' : undefined;
+  // KYC redesign (2026-06-02): the only user-facing statuses are Pending and
+  // Completed. "Completed" → status=COMPLETED; "Pending" → everything else
+  // (statusNot=COMPLETED). `defaultStatus` is no longer routed (single page).
+  const effectiveStatus = status === 'COMPLETED' ? 'COMPLETED' : undefined;
+  const effectiveStatusNot = status === 'PENDING' ? 'COMPLETED' : undefined;
 
   const queryFilters = {
     page,
@@ -451,10 +438,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                 <SelectContent>
                   <SelectItem value="ALL">All Statuses</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                   <SelectItem value="COMPLETED">Completed</SelectItem>
-                  <SelectItem value="REVOKED">Revoked</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -555,7 +539,9 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                   const status = task.verificationStatus;
                   // Each control requires BOTH a valid state AND the matching
                   // permission. The read-only KYC Verifier holds none of these.
-                  const canStartVerify =
+                  // No /start step — the backend user completes directly from
+                  // any non-terminal state.
+                  const canCompleteTask =
                     canComplete &&
                     (status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS');
                   const canRevoke =
@@ -612,7 +598,9 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                         {task.documentNumber || '-'}
                       </TableCell>
                       <TableCell>
-                        <Badge className={STATUS_COLORS[status] || ''}>{status}</Badge>
+                        <Badge className={kycDisplayStatus(status).color}>
+                          {kycDisplayStatus(status).label}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         {task.assignedToName || (
@@ -624,20 +612,15 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 flex-wrap">
-                          {canStartVerify && (
+                          {canCompleteTask && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              disabled={isStarting}
-                              onClick={() => handleStartAndVerify(task)}
-                              title={
-                                status === 'IN_PROGRESS'
-                                  ? 'Open verify page'
-                                  : 'Start and open verify page'
-                              }
+                              onClick={() => handleComplete(task)}
+                              title="Record findings and complete this KYC document"
                             >
                               <PlayCircle className="h-4 w-4 mr-1" />
-                              {status === 'IN_PROGRESS' ? 'Verify' : 'Start + Verify'}
+                              Complete
                             </Button>
                           )}
                           {isCompleted && (
