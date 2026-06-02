@@ -186,3 +186,13 @@ export const useUploadKYCDocument = () => {
     errorContext: 'KYC Document Upload',
   });
 };
+
+// P2 (2026-06-02): attach the completion report file to the active cycle.
+export const useUploadKYCReport = () => {
+  return useMutationWithInvalidation({
+    mutationFn: ({ taskId, file }: { taskId: string; file: File }) =>
+      kycService.uploadReport(taskId, file),
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Report Upload',
+  });
+};
