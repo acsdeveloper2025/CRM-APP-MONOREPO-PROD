@@ -19,6 +19,10 @@ import {
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api';
+import {
+  VerificationTasksService,
+  type BackendFieldReview,
+} from '@/services/verificationTasks';
 import { LoadingState } from '@/components/ui/loading';
 import { EditTaskDetailsModal } from '@/components/verification-tasks/EditTaskDetailsModal';
 import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
@@ -94,6 +98,7 @@ export const TaskDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [task, setTask] = useState<TaskDetail | null>(null);
+  const [backendReview, setBackendReview] = useState<BackendFieldReview | null>(null);
   const [assignmentHistory, setAssignmentHistory] = useState<TaskTimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,9 +111,20 @@ export const TaskDetailPage: React.FC = () => {
     if (taskId) {
       fetchTaskDetails();
       fetchAssignmentHistory();
+      fetchBackendReview();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
+
+  const fetchBackendReview = async () => {
+    try {
+      const review = await VerificationTasksService.getFieldReview(String(taskId));
+      setBackendReview(review);
+    } catch {
+      // Non-fatal: the review panel just won't render.
+      setBackendReview(null);
+    }
+  };
 
   const fetchTaskDetails = async () => {
     try {
@@ -545,6 +561,57 @@ export const TaskDetailPage: React.FC = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Backend Review — official decision recorded at finalize. */}
+          {backendReview && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base text-green-700">Backend Review</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Backend Final Result</p>
+                  <p className="text-sm font-semibold mt-1">{backendReview.backendFinalResult}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Remark</p>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">{backendReview.remarks || '—'}</p>
+                </div>
+                {backendReview.findings && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Findings</p>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{backendReview.findings}</p>
+                  </div>
+                )}
+                {backendReview.observations && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Observations</p>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{backendReview.observations}</p>
+                  </div>
+                )}
+                {backendReview.recommendation && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Recommendation</p>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{backendReview.recommendation}</p>
+                  </div>
+                )}
+                {backendReview.reportFileName && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Report</p>
+                    <p className="text-sm mt-1">{backendReview.reportFileName}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Reviewed By</p>
+                  <p className="text-sm mt-1">
+                    {backendReview.reviewedByName || backendReview.reviewedByUsername || '—'}
+                    {backendReview.reviewedAt &&
+                      ` • ${format(new Date(backendReview.reviewedAt), 'dd MMM yyyy, hh:mm a')}`}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Revocation Details — only when status='REVOKED' */}
           {task.status === 'REVOKED' && (
