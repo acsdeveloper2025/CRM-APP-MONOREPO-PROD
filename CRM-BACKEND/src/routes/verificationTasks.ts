@@ -176,6 +176,20 @@ router.post(
 );
 
 /**
+ * Backend Final Decision (mandatory review) — finalize a submitted field task.
+ * POST /api/verification-tasks/:taskId/finalize
+ * No { ownership: 'task' }: the backend reviewer is not the task assignee;
+ * case scope is enforced inside the controller (enforceBackendUserCaseScope).
+ */
+router.post(
+  '/verification-tasks/:taskId/finalize',
+  authenticateToken,
+  authorize('field_review.complete'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
+  VerificationTasksController.finalizeFieldReview.bind(VerificationTasksController)
+);
+
+/**
  * Validate a verification task
  * GET /api/verification-tasks/:taskId/validate
  * Checks if a COMPLETED task has all required data

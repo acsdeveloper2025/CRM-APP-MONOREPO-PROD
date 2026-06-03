@@ -7,6 +7,7 @@ import type {
   CompleteVerificationTaskData,
 } from '../types/verificationTask';
 import { createAuditLog } from '../utils/auditLogger';
+import { enforceBackendUserCaseScope } from './attachmentsController';
 import { checkEditable, buildEditBlockedResponse } from '@/utils/editLockGuard';
 import { logger } from '../utils/logger';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
@@ -2505,6 +2506,193 @@ export class VerificationTasksController {
       res.status(500).json({
         success: false,
         message: 'Failed to complete verification task',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Backend Final Decision for a field verification task (mandatory review).
+   * POST /api/verification-tasks/:taskId/finalize
+   *
+   * A SUBMITTED_FOR_REVIEW field task is reviewed by a backend user who records
+   * the official Backend Final Result and completes the task. The FE submission
+   * (verification_reports / form_submissions) is NEVER modified — the decision is
+   * an append-only row in task_backend_reviews. Reuses the SAME completion
+   * side-effect owners as completeTask (no duplication):
+   *   - TaskCompletionFinalizer.snapshotFinancials        (in-tx, financials)
+   *   - createAuditLog                                    (in-tx, audit)
+   *   - CaseStatusSyncService.recalculateCaseStatus       (post-commit, case status)
+   *   - TaskCompletionFinalizer.triggerPostCompletionHooks(post-commit, commission)
+   *
+   * "Needs more verification" is NOT handled here — it is the existing, separate
+   * Revisit action invoked on the completed task.
+   */
+  static async finalizeFieldReview(req: AuthenticatedRequest, res: Response): Promise<void> {
+    if (!requireControllerPermission(req, res, 'field_review.complete')) {
+      return;
+    }
+    const taskId = String(req.params.taskId || '');
+    const userId = req.user!.id;
+    const { backendFinalResult, remarks, findings, observations, recommendation } = req.body as {
+      backendFinalResult?: string;
+      remarks?: string;
+      findings?: string;
+      observations?: string;
+      recommendation?: string;
+    };
+
+    if (!taskId) {
+      res.status(400).json({
+        success: false,
+        message: 'Task ID is required',
+        error: { code: 'TASK_ID_REQUIRED' },
+      });
+      return;
+    }
+    const VALID_RESULTS = ['Positive', 'Negative', 'Refer', 'Fraud'];
+    if (!backendFinalResult || !VALID_RESULTS.includes(backendFinalResult)) {
+      res.status(400).json({
+        success: false,
+        message: 'backendFinalResult must be one of Positive, Negative, Refer, Fraud',
+        error: { code: 'INVALID_RESULT' },
+      });
+      return;
+    }
+    const trimmedRemarks = typeof remarks === 'string' ? remarks.trim() : '';
+    if (!trimmedRemarks) {
+      res.status(400).json({
+        success: false,
+        message: 'Remark is required to complete the review',
+        error: { code: 'REMARK_REQUIRED' },
+      });
+      return;
+    }
+
+    const client = wrapClient(await pool.connect());
+    try {
+      await client.query('BEGIN');
+
+      // Lock the task row and guard its state.
+      const taskResult = await client.query(
+        `SELECT id, case_id, status FROM verification_tasks WHERE id = $1 FOR UPDATE`,
+        [taskId]
+      );
+      if (taskResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        res.status(404).json({
+          success: false,
+          message: 'Task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+        return;
+      }
+      const task = taskResult.rows[0];
+
+      // Case-scope guard: the reviewer is not the assignee, so enforce that the
+      // backend user may access this case (404 — do not leak existence).
+      const allowed = await enforceBackendUserCaseScope(
+        userId,
+        req.user,
+        task.caseId,
+        req.activeScope
+      );
+      if (!allowed) {
+        await client.query('ROLLBACK');
+        res.status(404).json({
+          success: false,
+          message: 'Task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+        return;
+      }
+
+      if (task.status !== 'SUBMITTED_FOR_REVIEW') {
+        await client.query('ROLLBACK');
+        res.status(409).json({
+          success: false,
+          message: 'Task must be submitted for review before it can be finalized',
+          error: { code: 'TASK_NOT_SUBMITTED_FOR_REVIEW' },
+        });
+        return;
+      }
+
+      // Pin the FE submission under review (latest), if present.
+      const subResult = await client.query(
+        `SELECT id FROM form_submissions WHERE verification_task_id = $1 ORDER BY submitted_at DESC LIMIT 1`,
+        [taskId]
+      );
+      const feSubmissionId: string | null = subResult.rows[0]?.id ?? null;
+
+      // Append-only Backend Final Decision row (never touches FE tables).
+      await client.query(
+        `UPDATE task_backend_reviews SET is_current = false WHERE verification_task_id = $1 AND is_current`,
+        [taskId]
+      );
+      await client.query(
+        `INSERT INTO task_backend_reviews
+           (verification_task_id, case_id, fe_submission_id, task_kind,
+            backend_final_result, backend_remarks, backend_findings,
+            backend_observations, backend_recommendation, reviewed_by)
+         VALUES ($1, $2, $3, 'FIELD', $4, $5, $6, $7, $8, $9)`,
+        [
+          taskId,
+          task.caseId,
+          feSubmissionId,
+          backendFinalResult,
+          trimmedRemarks,
+          findings ?? null,
+          observations ?? null,
+          recommendation ?? null,
+          userId,
+        ]
+      );
+
+      // Complete the task; official task outcome = Backend Final Result.
+      const updateResult = await client.query(
+        `UPDATE verification_tasks
+            SET status = 'COMPLETED',
+                verification_outcome = $1,
+                completed_at = NOW(),
+                updated_at = NOW()
+          WHERE id = $2
+          RETURNING *`,
+        [backendFinalResult, taskId]
+      );
+      const completedTask = updateResult.rows[0];
+
+      // Financial snapshot via the shared finalizer (same authority as completeTask).
+      await TaskCompletionFinalizer.snapshotFinancials(client, taskId);
+
+      await createAuditLog({
+        userId,
+        action: 'FINALIZE_FIELD_REVIEW',
+        entityType: 'VERIFICATION_TASK',
+        entityId: taskId,
+        details: { backendFinalResult, feSubmissionId },
+      });
+
+      await client.query('COMMIT');
+
+      // Post-commit side-effects via the canonical owners (mirrors completeTask).
+      await CaseStatusSyncService.recalculateCaseStatus(task.caseId);
+      if (completedTask.rateTypeId && completedTask.assignedTo) {
+        await TaskCompletionFinalizer.triggerPostCompletionHooks(taskId);
+      }
+
+      res.json({
+        success: true,
+        data: completedTask,
+        message: 'Field verification finalized',
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Error finalizing field review:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to finalize field review',
         error: { code: 'INTERNAL_ERROR' },
       });
     } finally {
