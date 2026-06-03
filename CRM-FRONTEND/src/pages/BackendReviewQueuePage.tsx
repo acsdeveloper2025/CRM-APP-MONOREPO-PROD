@@ -16,10 +16,12 @@ export const BackendReviewQueuePage: React.FC = () => {
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['backend-review-queue'],
-    queryFn: () => VerificationTasksService.getAllTasks({ status: 'SUBMITTED_FOR_REVIEW' }),
+    queryFn: () =>
+      VerificationTasksService.getAllTasks({ status: 'SUBMITTED_FOR_REVIEW', limit: 100 }),
   });
 
   const tasks = data?.data?.tasks ?? [];
+  const total = data?.data?.pagination?.total ?? tasks.length;
 
   const handleCompleted = () => {
     setOpenTaskId(null);
@@ -54,6 +56,13 @@ export const BackendReviewQueuePage: React.FC = () => {
       {!isLoading && !isError && tasks.length === 0 && (
         <div className="rounded border border-dashed p-8 text-center text-muted-foreground">
           No verifications awaiting review.
+        </div>
+      )}
+
+      {total > tasks.length && (
+        <div className="rounded border border-dashed p-3 text-sm text-muted-foreground">
+          Showing the first {tasks.length} of {total} pending reviews. Finalize these and refresh to
+          load the rest.
         </div>
       )}
 

@@ -2496,7 +2496,11 @@ export class VerificationTasksController {
       // MUST run after COMMIT — finalizer's commission engine reads via the
       // pool and cannot see uncommitted writes from this client.
       await CaseStatusSyncService.recalculateCaseStatus(task.caseId);
-      if (completedTask.rateTypeId && completedTask.assignedTo) {
+      // Commission fires only on actual completion. When the task lands
+      // SUBMITTED_FOR_REVIEW (mandatory review on), it is deferred to the
+      // backend finalize step. (The engine also self-guards on status, so this
+      // is belt-and-braces + avoids a wasted no-op query.)
+      if (targetStatus === 'COMPLETED' && completedTask.rateTypeId && completedTask.assignedTo) {
         await TaskCompletionFinalizer.triggerPostCompletionHooks(taskId);
       }
 
