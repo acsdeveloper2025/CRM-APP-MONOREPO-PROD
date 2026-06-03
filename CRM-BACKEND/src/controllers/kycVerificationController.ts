@@ -507,107 +507,16 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
   }
 };
 
-// Get single KYC task detail
-/**
- * Canonical 5-card stats endpoint for /kyc-verification/* dashboard pages.
- * GET /api/kyc/tasks/stats
- *
- * Returns aggregates over the scope-narrowed KYC pool (ignores route-
- * specific status/statusNot/documentType/search filters — partition
- * counters reflect the FULL in-scope KYC tasks so cards stay meaningful
- * regardless of which route the user is on).
- */
-export const getKYCTaskStats = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const baseWhere = await buildKycTasksBaseWhereClause(req);
-    const whereClause =
-      baseWhere.baseConditions.length > 0 ? `WHERE ${baseWhere.baseConditions.join(' AND ')}` : '';
-
-    const result = await query(
-      `SELECT
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE kdv.verification_status = 'PENDING') as pending,
-        COUNT(*) FILTER (WHERE kdv.verification_status = 'ASSIGNED') as assigned,
-        COUNT(*) FILTER (WHERE kdv.verification_status = 'IN_PROGRESS') as "inProgress",
-        COUNT(*) FILTER (WHERE kdv.verification_status = 'COMPLETED') as completed,
-        COUNT(*) FILTER (WHERE kdv.verification_status = 'REVOKED') as revoked,
-        COUNT(*) FILTER (WHERE kdv.verification_status IN ('PENDING','ASSIGNED','IN_PROGRESS')) as open,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Positive') as positive,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Negative') as negative,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Refer') as referred,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Fraud') as fraud,
-        COUNT(*) FILTER (
-          WHERE kdv.verification_status = 'COMPLETED' AND kdv.verified_at >= CURRENT_DATE
-        ) as "completedToday",
-        COUNT(*) FILTER (
-          WHERE kdv.verification_status = 'COMPLETED'
-          AND kdv.verified_at >= date_trunc('week', CURRENT_DATE)
-        ) as "completedThisWeek",
-        COUNT(*) FILTER (
-          WHERE kdv.verification_status NOT IN ('COMPLETED','REVOKED')
-          AND kdv.created_at < NOW() - INTERVAL '3 days'
-        ) as "agingOver3Days",
-        AVG(EXTRACT(EPOCH FROM (kdv.verified_at - kdv.created_at)) / 3600.0) FILTER (
-          WHERE kdv.verification_status = 'COMPLETED' AND kdv.verified_at IS NOT NULL
-        ) as "avgVerifyHours",
-        -- Distinct KYC verifiers actively assigned. Truthful-sweep
-        -- 2026-05-26 added so analytics can show field agent + KYC
-        -- verifier headcounts side by side.
-        COUNT(DISTINCT vt.assigned_to) FILTER (WHERE vt.assigned_to IS NOT NULL)
-          as "activeKycVerifiers"
-       FROM kyc_document_verifications kdv
-       JOIN cases c ON c.id = kdv.case_id
-       JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
-       ${whereClause}`,
-      baseWhere.baseParams
-    );
-
-    const row = result.rows[0] || {};
-    const num = (key: string): number => parseInt(row[key] || '0', 10);
-    const flt = (key: string): number => parseFloat(row[key] || '0');
-
-    const completed = num('completed');
-    const positive = num('positive');
-    const positiveRate = completed > 0 ? Math.round((positive / completed) * 100) : 0;
-
-    res.json({
-      success: true,
-      data: {
-        total: num('total'),
-        pending: num('pending'),
-        assigned: num('assigned'),
-        inProgress: num('inProgress'),
-        completed,
-        revoked: num('revoked'),
-        open: num('open'),
-        positive,
-        negative: num('negative'),
-        referred: num('referred'),
-        fraud: num('fraud'),
-        positiveRate,
-        completedToday: num('completedToday'),
-        completedThisWeek: num('completedThisWeek'),
-        agingOver3Days: num('agingOver3Days'),
-        avgVerifyHours: flt('avgVerifyHours'),
-        activeKycVerifiers: num('activeKycVerifiers'),
-      },
-      message: 'KYC task stats retrieved successfully',
-    });
-  } catch (error) {
-    logger.error('Error getting KYC task stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get KYC task stats',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
 // GET /api/kyc/mis
-// P5 (2026-06-02): the 7 required KYC MIS metrics, sourced from the append-only
-// kyc_verification_cycles table (NOT the destructive single row) so reverification
-// + per-cycle billing are countable. Reuses the same row-scope WHERE as the task
-// stats. (Assumes the current 1 KYC document : 1 task model for the kdv join.)
+// M4 (2026-06-03): the displayed KYC summary metrics (Total / Pending /
+// Completed) are now DOCUMENT-grained — counted over kyc_document_verifications
+// with the SAME scope + soft-delete WHERE as the task list — so the dashboard /
+// KYC-page cards always agree with the list count a user lands on after clicking
+// them (previously cycle-grained, which over-counted vs the list because of
+// legacy reverification cycles). Base is the kdv table LEFT JOIN cycles, so the
+// (now mostly vestigial — invoicing is external/Tally) billable/billed/revenue
+// figures stay computable per-distinct-cycle with no doc fan-out. Recheck clones
+// are separate documents (their own kdv), so they are counted as documents.
 export const getKycMis = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const baseWhere = await buildKycTasksBaseWhereClause(req);
@@ -616,34 +525,20 @@ export const getKycMis = async (req: AuthenticatedRequest, res: Response) => {
 
     const result = await query(
       `SELECT
-         COUNT(*) as "totalAssigned",
-         -- Read-only verifier model: the verifier never moves a cycle to an
-         -- "external verification / report awaited" state (those were never
-         -- written). A cycle is simply assigned -> completed by the backend
-         -- user. "Pending" = assigned/reassigned and not yet completed.
-         COUNT(*) FILTER (
-           WHERE cyc.status IN ('KYC_ASSIGNED','KYC_REASSIGNED')
-         ) as "pendingWithVerifier",
-         COUNT(*) FILTER (WHERE cyc.status = 'KYC_COMPLETED') as completed,
-         COUNT(*) FILTER (WHERE cyc.cycle_number > 1 OR kdv.recheck_of_kyc_id IS NOT NULL) as "reverificationCount",
-         COUNT(*) FILTER (WHERE cyc.billable = true) as "billableCount",
-         COUNT(*) FILTER (WHERE cyc.billed = true) as "billedCount",
+         COUNT(DISTINCT kdv.id) as "totalAssigned",
+         -- "Pending" = any non-terminal document (matches the Pending KYC list,
+         -- which is statusNot=COMPLETED). Completed = terminal COMPLETED docs.
+         COUNT(DISTINCT kdv.id) FILTER (WHERE kdv.verification_status <> 'COMPLETED') as "pendingWithVerifier",
+         COUNT(DISTINCT kdv.id) FILTER (WHERE kdv.verification_status = 'COMPLETED') as completed,
+         COUNT(DISTINCT kdv.id) FILTER (WHERE kdv.recheck_of_kyc_id IS NOT NULL) as "reverificationCount",
+         COUNT(DISTINCT cyc.id) FILTER (WHERE cyc.billable = true) as "billableCount",
+         COUNT(DISTINCT cyc.id) FILTER (WHERE cyc.billed = true) as "billedCount",
          COALESCE(SUM(cyc.rate_amount) FILTER (WHERE cyc.billable = true), 0)::text as "eligibleRevenue",
          COALESCE(SUM(cyc.rate_amount) FILTER (WHERE cyc.billed = true), 0)::text as "realizedRevenue"
-       FROM kyc_verification_cycles cyc
-       JOIN cases c ON c.id = cyc.case_id
-       JOIN verification_tasks vt ON vt.id = cyc.verification_task_id
-       -- LATERAL LIMIT 1: exactly one kdv per cycle so cycle COUNTs and
-       -- SUM(rate_amount) are never multiplied by a task's document count.
-       -- (Today 1 doc : 1 task, but this keeps revenue metrics correct if that
-       -- ever changes.) The scope WHERE still references kdv.* columns.
-       JOIN LATERAL (
-         SELECT kdv.* FROM kyc_document_verifications kdv
-          WHERE kdv.verification_task_id = cyc.verification_task_id
-            AND kdv.deleted_at IS NULL
-          ORDER BY kdv.created_at ASC
-          LIMIT 1
-       ) kdv ON true
+       FROM kyc_document_verifications kdv
+       JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
+       JOIN cases c ON c.id = kdv.case_id
+       LEFT JOIN kyc_verification_cycles cyc ON cyc.verification_task_id = kdv.verification_task_id
        ${whereClause}`,
       baseWhere.baseParams
     );

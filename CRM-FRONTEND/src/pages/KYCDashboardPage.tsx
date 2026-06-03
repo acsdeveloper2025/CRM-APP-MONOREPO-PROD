@@ -147,10 +147,9 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const canCaseAssign = usePermission('case.assign');
   const canCaseReassign = usePermission('case.reassign');
   const canAssignPerm = canAssignKyc || canCaseCreate || canCaseAssign || canCaseReassign;
-  // P5/P6: KYC MIS (cycle-based) — only for report/analytics viewers.
-  const canReportGenerate = usePermission('report.generate');
-  const canAnalyticsView = usePermission('analytics.view');
-  const canViewMis = canReportGenerate || canAnalyticsView;
+  // KYC summary cards — report viewers only. (analytics.view is not a real
+  // permission — report.generate is the only gate.)
+  const canViewMis = usePermission('report.generate');
   const { data: mis } = useKYCMis(canViewMis);
   // Read-only KYC Verifier portal (2026-06-02): a viewer holding none of the
   // KYC workflow permissions. They get a simplified "My KYC" view — only the
