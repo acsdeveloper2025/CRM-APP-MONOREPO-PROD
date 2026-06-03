@@ -16,7 +16,14 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (!user) {
           return false;
         }
-        const codes = Array.isArray(user.permissions) ? (user.permissions as string[]) : [];
+        // 2026-06-03: read permissionCodes first (mirrors usePermission). The
+        // AuthContext normalizer usually copies permissionCodes→permissions, but
+        // any auth path that delivers a permissionCodes-only user would otherwise
+        // make this return false and silently disable permission-gated queries
+        // (e.g. the case-detail KYC tab via useKYCTasksForCase).
+        const codes =
+          (user as { permissionCodes?: string[] }).permissionCodes ||
+          (Array.isArray(user.permissions) ? (user.permissions as string[]) : []);
         return codes.includes('*') || codes.includes(code);
       },
     }),
