@@ -579,8 +579,8 @@ export const CaseDetailPage: React.FC = () => {
               )}
               {/* "Reassign Case" omitted at case-level — REVOKED is a Task
                   status (per FE CaseStatusType), not a Case status. Use the
-                  per-task Reassign action in the Tasks tab. */}
-              {caseItem.status !== 'COMPLETED' && <Button className="w-full">Mark Complete</Button>}
+                  per-task Reassign action in the Tasks tab. Case completion is
+                  task-driven (CaseStatusSyncService) — no case-level action. */}
             </CardContent>
           </Card>
         </div>

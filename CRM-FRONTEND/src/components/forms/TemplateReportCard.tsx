@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   FileText,
-  Download,
   RefreshCw,
   Clock,
   CheckCircle,
@@ -113,30 +112,6 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
     }
   };
 
-  const downloadReport = () => {
-    if (!report) {
-      return;
-    }
-
-    const content = `VERIFICATION REPORT
-Generated: ${new Date(report.createdAt).toLocaleString()}
-Verification Type: ${report.metadata.verificationType}
-Outcome: ${report.metadata.outcome}
-Template Used: ${report.metadata.templateUsed}
-
-${report.content}`;
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `template-report-case-${caseId}-${submissionId}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
@@ -240,13 +215,6 @@ ${report.content}`;
                 <RefreshCw className="h-4 w-4 mr-2" />
               )}
               {generating ? 'Regenerating...' : 'Regenerate Report'}
-            </button>
-            <button
-              onClick={downloadReport}
-              className="flex items-center px-4 py-2 bg-secondary hover:bg-accent text-secondary-foreground rounded-lg transition-colors"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Report
             </button>
           </div>
         </div>
