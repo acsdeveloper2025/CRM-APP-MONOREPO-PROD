@@ -119,7 +119,7 @@ export const useVerifyKYCDocument = () => {
       data,
     }: {
       taskId: string;
-      data: { status: string; remarks?: string; rejectionReason?: string };
+      data: { status?: string; finalStatus?: string; remarks?: string; rejectionReason?: string };
     }) => kycService.verifyDocument(taskId, data),
     invalidateKeys: [kycKeys.all],
     errorContext: 'KYC Verification',
@@ -164,26 +164,10 @@ export const useRecheckKYCTask = () => {
 // P3 (2026-06-02): open a new billable reverification cycle (non-destructive).
 export const useReverifyKYCTask = () => {
   return useMutationWithInvalidation({
-    mutationFn: ({
-      taskId,
-      assignedTo,
-      reason,
-    }: {
-      taskId: string;
-      assignedTo?: string;
-      reason?: string;
-    }) => kycService.reverifyTask(taskId, { assignedTo, reason }),
+    mutationFn: ({ taskId, assignedTo, reason }: { taskId: string; assignedTo?: string; reason?: string }) =>
+      kycService.reverifyTask(taskId, { assignedTo, reason }),
     invalidateKeys: [kycKeys.all],
     errorContext: 'KYC Reverify',
-  });
-};
-
-export const useUploadKYCDocument = () => {
-  return useMutationWithInvalidation({
-    mutationFn: ({ taskId, file }: { taskId: string; file: File }) =>
-      kycService.uploadDocument(taskId, file),
-    invalidateKeys: [kycKeys.all],
-    errorContext: 'KYC Document Upload',
   });
 };
 
@@ -205,6 +189,34 @@ export const useRecheckCloneKYC = () => {
     }) => kycService.recheckClone(taskId, payload),
     invalidateKeys: [kycKeys.all],
     errorContext: 'KYC Recheck',
+  });
+};
+
+// 2026-06-03: edit a non-terminal KYC doc's details from the case-detail card.
+export const useUpdateKYCDetails = () => {
+  return useMutationWithInvalidation({
+    mutationFn: ({
+      taskId,
+      payload,
+    }: {
+      taskId: string;
+      payload: {
+        documentNumber?: string;
+        documentHolderName?: string;
+        documentDetails?: Record<string, string>;
+      };
+    }) => kycService.updateDetails(taskId, payload),
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Details Update',
+  });
+};
+
+export const useUploadKYCDocument = () => {
+  return useMutationWithInvalidation({
+    mutationFn: ({ taskId, file }: { taskId: string; file: File }) =>
+      kycService.uploadDocument(taskId, file),
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Document Upload',
   });
 };
 

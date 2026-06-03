@@ -16,6 +16,7 @@ import {
   uploadKYCReport,
   recheckCloneKYCTask,
   getKYCTasksForCase,
+  updateKYCDocumentDetails,
   exportKYCToExcel,
   startKYCTask,
   revokeKYCTask,
@@ -100,6 +101,15 @@ router.get(
   '/tasks/:taskId/cycles/:cycleNumber/report',
   authorizeAny(['kyc.view', 'case.view']),
   serveKYCCycleReport
+);
+
+// Edit a non-terminal KYC document's details (number / holder / custom fields)
+// from the case-detail KYC card. Management action — gated like assign.
+router.put(
+  '/tasks/:taskId/details',
+  authorizeAny(['kyc.assign', 'case.create', 'case.assign', 'case.reassign']),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
+  updateKYCDocumentDetails
 );
 
 // Single KYC task detail

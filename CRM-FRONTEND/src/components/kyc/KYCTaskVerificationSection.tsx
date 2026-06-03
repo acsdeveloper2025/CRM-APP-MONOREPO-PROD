@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -21,14 +20,16 @@ import {
   Download,
   UserPlus,
   Loader2,
+  Pencil,
 } from 'lucide-react';
 import {
   useKYCTasksForCase,
-  useVerifyKYCDocument,
+  useUpdateKYCDetails,
   useUploadKYCDocument,
   useAssignKYCTask,
 } from '@/hooks/useKYC';
 import { kycService, type KYCTask } from '@/services/kyc';
+import { KYCCompletionForm } from '@/components/kyc/KYCCompletionForm';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { apiService } from '@/services/api';
@@ -52,7 +53,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
   readonly = false,
 }) => {
   const { data: kycTasks = [], isLoading } = useKYCTasksForCase(caseId);
-  const { mutateAsync: verifyDoc, isPending: isVerifying } = useVerifyKYCDocument();
+  const { mutateAsync: updateDetails, isPending: isUpdating } = useUpdateKYCDetails();
   const { mutateAsync: uploadDoc } = useUploadKYCDocument();
   const { mutateAsync: assignDoc } = useAssignKYCTask();
   // KYC Verifier read-only model (2026-06-02): findings entry / upload / assign
@@ -75,9 +76,16 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
   };
 
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
-  const [remarks, setRemarks] = useState<Record<string, string>>({});
-  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
   const [assignUser, setAssignUser] = useState<Record<string, string>>({});
+  // Inline "edit details" state (number / holder / per-type custom fields).
+  const [editingDoc, setEditingDoc] = useState<string | null>(null);
+  // Inline "complete verification" state (shared KYCCompletionForm).
+  const [completingDoc, setCompletingDoc] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{
+    documentNumber: string;
+    documentHolderName: string;
+    documentDetails: Record<string, string>;
+  }>({ documentNumber: '', documentHolderName: '', documentDetails: {} });
 
   // Fetch users for assignment dropdown (only when not readonly).
   // Phase 1.4 (2026-05-04): switched from `/users?role=KYC_VERIFIER` (which
@@ -98,24 +106,29 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
   });
   const users = usersData || [];
 
-  const handleVerify = async (docId: string, status: 'PASS' | 'FAIL' | 'REFER') => {
-    if (status === 'FAIL' && !rejectionReasons[docId]?.trim()) {
-      toast.error('Please provide a rejection reason');
-      return;
-    }
+  const startEdit = (doc: KYCTask) => {
+    setEditingDoc(doc.id);
+    setEditForm({
+      documentNumber: doc.documentNumber || '',
+      documentHolderName: doc.documentHolderName || '',
+      documentDetails: { ...(doc.documentDetails || {}) },
+    });
+  };
+
+  const handleSaveDetails = async (docId: string) => {
     try {
-      await verifyDoc({
+      await updateDetails({
         taskId: docId,
-        data: {
-          status,
-          remarks: remarks[docId]?.trim() || undefined,
-          rejectionReason: status === 'FAIL' ? rejectionReasons[docId]?.trim() : undefined,
+        payload: {
+          documentNumber: editForm.documentNumber.trim() || undefined,
+          documentHolderName: editForm.documentHolderName.trim() || undefined,
+          documentDetails: editForm.documentDetails,
         },
       });
-      toast.success(`Document marked as ${status}`);
-      setExpandedDoc(null);
+      toast.success('KYC details updated');
+      setEditingDoc(null);
     } catch {
-      toast.error('Failed to verify document');
+      toast.error('Failed to update KYC details');
     }
   };
 
@@ -384,52 +397,113 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                     </div>
                   )}
 
-                  {/* Verification actions — record the outcome directly (no
-                      Start step). Shown for any open doc, hidden in readonly. */}
-                  {!isTerminal && !effectiveReadonly && (
-                    <div className="space-y-3 pt-2 border-t">
-                      <div>
-                        <Label className="text-xs">Remarks (Optional)</Label>
-                        <Textarea
-                          placeholder="Add observations..."
-                          className="text-sm min-h-[60px]"
-                          value={remarks[doc.id] || ''}
-                          onChange={(e) =>
-                            setRemarks((prev) => ({ ...prev, [doc.id]: e.target.value }))
-                          }
-                        />
+                  {/* Edit details — fix the document number / holder / per-type
+                      custom fields if something was entered wrong or left
+                      missing. Completion (Verified / Not Verified) is done on
+                      the dedicated KYC verification page, not from this card. */}
+                  {!isTerminal &&
+                    !effectiveReadonly &&
+                    (editingDoc === doc.id ? (
+                      <div className="space-y-3 pt-2 border-t">
+                        <div>
+                          <Label className="text-xs">Document Number</Label>
+                          <Input
+                            className="text-sm h-8"
+                            value={editForm.documentNumber}
+                            onChange={(e) =>
+                              setEditForm((p) => ({ ...p, documentNumber: e.target.value }))
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Holder Name</Label>
+                          <Input
+                            className="text-sm h-8"
+                            value={editForm.documentHolderName}
+                            onChange={(e) =>
+                              setEditForm((p) => ({ ...p, documentHolderName: e.target.value }))
+                            }
+                          />
+                        </div>
+                        {(doc.typeCustomFields || []).map((f) => (
+                          <div key={f.key}>
+                            <Label className="text-xs">
+                              {f.label}
+                              {f.required && <span className="text-red-500"> *</span>}
+                            </Label>
+                            <Input
+                              type={
+                                f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'
+                              }
+                              className="text-sm h-8"
+                              value={editForm.documentDetails[f.key] || ''}
+                              onChange={(e) =>
+                                setEditForm((p) => ({
+                                  ...p,
+                                  documentDetails: {
+                                    ...p.documentDetails,
+                                    [f.key]: e.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </div>
+                        ))}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleSaveDetails(doc.id)}
+                            disabled={isUpdating}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setEditingDoc(null)}
+                            disabled={isUpdating}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
                       </div>
-                      <div>
-                        <Label className="text-xs">Rejection Reason (Required for Fail)</Label>
-                        <Input
-                          placeholder="Why verification failed..."
-                          className="text-sm h-8"
-                          value={rejectionReasons[doc.id] || ''}
-                          onChange={(e) =>
-                            setRejectionReasons((prev) => ({ ...prev, [doc.id]: e.target.value }))
-                          }
+                    ) : completingDoc === doc.id ? (
+                      <div className="space-y-2 pt-2 border-t">
+                        <p className="text-sm font-medium">Complete verification</p>
+                        <KYCCompletionForm
+                          taskId={doc.id}
+                          onCompleted={() => setCompletingDoc(null)}
                         />
-                      </div>
-                      <div className="flex gap-2">
                         <Button
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-white flex-1"
-                          onClick={() => handleVerify(doc.id, 'PASS')}
-                          disabled={isVerifying}
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setCompletingDoc(null)}
                         >
-                          <CheckCircle className="h-3.5 w-3.5 mr-1" /> Verified
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 pt-2 border-t">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8"
+                          onClick={() => startEdit(doc)}
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit details
                         </Button>
                         <Button
                           size="sm"
-                          className="bg-red-600 hover:bg-red-700 text-white flex-1"
-                          onClick={() => handleVerify(doc.id, 'FAIL')}
-                          disabled={isVerifying}
+                          className="h-8 bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => setCompletingDoc(doc.id)}
                         >
-                          <XCircle className="h-3.5 w-3.5 mr-1" /> Not Verified
+                          <CheckCircle className="h-3.5 w-3.5 mr-1" /> Complete verification
                         </Button>
                       </div>
-                    </div>
-                  )}
+                    ))}
                 </div>
               )}
             </div>
