@@ -266,7 +266,11 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   // URL state — every filter survives reload + is shareable.
   const page = Number(searchParams.get('page') || '1');
   const pageSize = Number(searchParams.get('pageSize') || '20');
-  const status = searchParams.get('status') || defaultStatus || 'ALL';
+  // Read-only verifier lands on their open queue (Pending) by default — their
+  // job is to download + work what's still assigned. They can switch the Status
+  // filter (or the Completed tab) to see finished docs.
+  const status =
+    searchParams.get('status') || defaultStatus || (isReadOnlyKyc ? 'PENDING' : 'ALL');
   const docType = searchParams.get('documentType') || 'ALL';
   const sort = searchParams.get('sort') || 'createdAt_desc';
   const dateFrom = searchParams.get('dateFrom') || '';
@@ -379,10 +383,22 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {isReadOnlyKyc ? 'My KYC' : pageTitle}
+            {isReadOnlyKyc
+              ? status === 'COMPLETED'
+                ? 'My KYC — Completed'
+                : status === 'PENDING'
+                  ? 'My KYC — To Download'
+                  : 'My KYC'
+              : pageTitle}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isReadOnlyKyc ? 'Documents assigned to you — view & download' : pageSubtitle}
+            {isReadOnlyKyc
+              ? status === 'COMPLETED'
+                ? 'Documents you were assigned that the back office has completed'
+                : status === 'PENDING'
+                  ? 'Documents assigned to you — download and verify with the source'
+                  : 'All documents assigned to you — view & download'
+              : pageSubtitle}
           </p>
         </div>
       </div>
@@ -415,9 +431,19 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
               <div className="flex items-center">
                 <FileText className="h-8 w-8 text-muted-foreground" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Assigned to me</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {status === 'COMPLETED'
+                      ? 'Completed'
+                      : status === 'PENDING'
+                        ? 'To download'
+                        : 'Assigned to me'}
+                  </p>
                   <p className="text-2xl font-bold">{pagination.total ?? '—'}</p>
-                  <p className="text-xs text-muted-foreground">Documents to download</p>
+                  <p className="text-xs text-muted-foreground">
+                    {status === 'COMPLETED'
+                      ? 'Completed by the back office'
+                      : 'Documents assigned to you'}
+                  </p>
                 </div>
               </div>
             </CardContent>
