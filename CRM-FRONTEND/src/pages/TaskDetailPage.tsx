@@ -535,6 +535,14 @@ export const TaskDetailPage: React.FC = () => {
                 <p className="text-sm font-medium text-muted-foreground">Priority</p>
                 <div className="mt-1">{getPriorityBadge(task.priority)}</div>
               </div>
+              {task.status === 'COMPLETED' && task.verificationOutcome && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Backend Final Result
+                  </p>
+                  <p className="text-sm font-semibold mt-1">{task.verificationOutcome}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
