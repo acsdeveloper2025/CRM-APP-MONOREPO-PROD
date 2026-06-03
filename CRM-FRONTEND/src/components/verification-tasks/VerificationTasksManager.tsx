@@ -14,9 +14,12 @@ import { TaskAssignmentModal } from './TaskAssignmentModal';
 import { TaskCompletionModal } from './TaskCompletionModal';
 import { TaskSummaryCards } from './TaskSummaryCards';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
+import { FieldReviewDecisionForm } from './FieldReviewDecisionForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus, Filter, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { usePermission } from '@/hooks/usePermissions';
 import { useRevisitTaskAction } from '@/hooks/useRevisitTaskAction';
 import { useRevokeTaskAction } from '@/hooks/useRevokeTaskAction';
 
@@ -34,10 +37,12 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   readonly = false,
 }) => {
   const navigate = useNavigate();
+  const canReview = usePermission('field_review.complete');
   const [activeTab, setActiveTab] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [reviewTaskId, setReviewTaskId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
@@ -61,6 +66,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   const pendingTasks = getTasksByStatus('PENDING');
   const assignedTasks = getTasksByStatus('ASSIGNED');
   const inProgressTasks = getTasksByStatus('IN_PROGRESS');
+  const submittedForReviewTasks = getTasksByStatus('SUBMITTED_FOR_REVIEW');
   const completedTasks = getTasksByStatus('COMPLETED');
   const revokedTasks = getTasksByStatus('REVOKED');
 
@@ -196,6 +202,17 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
     setSelectedTaskId(null);
   }, []);
 
+  // Backend Final Review (mandatory review): open the decision form for a
+  // SUBMITTED_FOR_REVIEW field task; on finalize refetch so it moves to
+  // Completed and the case rollup updates.
+  const handleOpenReviewModal = useCallback((taskId: string) => {
+    setReviewTaskId(taskId);
+  }, []);
+  const handleReviewCompleted = useCallback(() => {
+    setReviewTaskId(null);
+    refetch();
+  }, [refetch]);
+
   // Filter tasks based on active tab
   const getFilteredTasks = () => {
     switch (activeTab) {
@@ -205,6 +222,8 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
         return assignedTasks;
       case 'in-progress':
         return inProgressTasks;
+      case 'review':
+        return submittedForReviewTasks;
       case 'completed':
         return completedTasks;
       case 'revoked':
@@ -289,7 +308,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
       <Card>
         <CardHeader className="pb-3">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className={canReview ? 'grid w-full grid-cols-7' : 'grid w-full grid-cols-6'}>
               <TabsTrigger value="all" className="text-xs">
                 All ({tasks.length})
               </TabsTrigger>
@@ -302,6 +321,11 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
               <TabsTrigger value="in-progress" className="text-xs">
                 In Progress ({inProgressTasks.length})
               </TabsTrigger>
+              {canReview && (
+                <TabsTrigger value="review" className="text-xs">
+                  Review ({submittedForReviewTasks.length})
+                </TabsTrigger>
+              )}
               <TabsTrigger value="completed" className="text-xs">
                 Completed ({completedTasks.length})
               </TabsTrigger>
@@ -326,6 +350,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
             onCancelTask={handleCancelTask}
             onViewTask={handleViewTask}
             onRevisitTask={handleRevisitTask}
+            onReviewTask={canReview ? handleOpenReviewModal : undefined}
           />
         </CardContent>
       </Card>
@@ -353,6 +378,18 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
           onSubmit={handleCompleteTask}
         />
       )}
+
+      {/* Backend Final Review — record the official result on a submitted task. */}
+      <Dialog open={!!reviewTaskId} onOpenChange={(open) => !open && setReviewTaskId(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Backend Review &amp; Finalize</DialogTitle>
+          </DialogHeader>
+          {reviewTaskId && (
+            <FieldReviewDecisionForm taskId={reviewTaskId} onCompleted={handleReviewCompleted} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

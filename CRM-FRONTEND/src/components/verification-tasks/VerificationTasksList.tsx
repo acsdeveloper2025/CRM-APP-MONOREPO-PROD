@@ -16,7 +16,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown, UserCheck, CheckCircle, Play, X, Eye, Clock, RefreshCw } from 'lucide-react';
+import {
+  ChevronDown,
+  UserCheck,
+  CheckCircle,
+  Play,
+  X,
+  Eye,
+  Clock,
+  RefreshCw,
+  ClipboardCheck,
+} from 'lucide-react';
 import { VerificationTask, TaskStatus } from '@/types/verificationTask';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -38,6 +48,7 @@ interface VerificationTasksListProps {
   onCancelTask?: (taskId: string) => void;
   onViewTask?: (taskId: string) => void;
   onRevisitTask?: (taskId: string) => void;
+  onReviewTask?: (taskId: string) => void;
 }
 
 export const VerificationTasksList: React.FC<VerificationTasksListProps> = React.memo(
@@ -54,6 +65,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
     onCancelTask,
     onViewTask,
     onRevisitTask,
+    onReviewTask,
   }) => {
     // Status icon helper
     const getStatusIcon = (status: TaskStatus) => {
@@ -61,6 +73,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
         PENDING: Clock,
         ASSIGNED: UserCheck,
         IN_PROGRESS: Play,
+        SUBMITTED_FOR_REVIEW: ClipboardCheck,
         COMPLETED: CheckCircle,
         REVOKED: X,
       };
@@ -224,7 +237,9 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
                     {React.createElement(getStatusIcon(task.status), {
                       className: 'h-3 w-3 mr-1 inline',
                     })}
-                    {getStatusLabel(task.status)}
+                    {task.status === 'SUBMITTED_FOR_REVIEW'
+                      ? 'Awaiting Review'
+                      : getStatusLabel(task.status)}
                   </Badge>
                 </TableCell>
 
@@ -304,6 +319,13 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
                             <DropdownMenuItem onClick={() => onCompleteTask(task.id)}>
                               <CheckCircle className="h-4 w-4 mr-2" />
                               Complete Task
+                            </DropdownMenuItem>
+                          )}
+
+                          {task.status === 'SUBMITTED_FOR_REVIEW' && onReviewTask && (
+                            <DropdownMenuItem onClick={() => onReviewTask(task.id)}>
+                              <ClipboardCheck className="h-4 w-4 mr-2" />
+                              Review &amp; Finalize
                             </DropdownMenuItem>
                           )}
 
