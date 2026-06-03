@@ -34,6 +34,7 @@ export const FieldReviewDecisionForm: React.FC<FieldReviewDecisionFormProps> = (
         findings: values.findings || undefined,
         observations: values.observations || undefined,
         recommendation: values.recommendation || undefined,
+        file: values.file,
       });
       toast.success(`Verification finalized — ${values.result}`);
       onCompleted?.();
@@ -52,6 +53,8 @@ export const FieldReviewDecisionForm: React.FC<FieldReviewDecisionFormProps> = (
       resultLabel="Backend Final Result"
       resultHint="The official company decision. May differ from the field executive's result; both are preserved."
       showStructured
+      showAttachment
+      attachmentLabel="Backend report (optional)"
       busy={busy}
       onComplete={handleComplete}
     />

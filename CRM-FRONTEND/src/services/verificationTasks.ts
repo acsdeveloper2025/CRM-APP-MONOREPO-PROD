@@ -294,9 +294,26 @@ export class VerificationTasksService {
       findings?: string;
       observations?: string;
       recommendation?: string;
+      file?: File | null;
     }
   ): Promise<VerificationTaskResponse> {
-    const response = await apiService.post(`/verification-tasks/${taskId}/finalize`, data);
+    // Multipart: decision fields + optional backend report file (mirrors KYC).
+    const formData = new FormData();
+    formData.append('backendFinalResult', data.backendFinalResult);
+    formData.append('remarks', data.remarks);
+    if (data.findings) {
+      formData.append('findings', data.findings);
+    }
+    if (data.observations) {
+      formData.append('observations', data.observations);
+    }
+    if (data.recommendation) {
+      formData.append('recommendation', data.recommendation);
+    }
+    if (data.file) {
+      formData.append('report', data.file);
+    }
+    const response = await apiService.post(`/verification-tasks/${taskId}/finalize`, formData);
     if (response.success && response.data) {
       validateResponse(VerificationTaskSchema, response.data, {
         service: 'verificationTasks',
