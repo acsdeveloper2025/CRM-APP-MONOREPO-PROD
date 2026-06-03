@@ -28,7 +28,7 @@ import {
   useUploadKYCDocument,
   useAssignKYCTask,
 } from '@/hooks/useKYC';
-import type { KYCTask } from '@/services/kyc';
+import { kycService, type KYCTask } from '@/services/kyc';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { apiService } from '@/services/api';
@@ -60,6 +60,19 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
   // even though CaseDetailPage passes readonly=false.
   const canComplete = usePermission('kyc.complete');
   const effectiveReadonly = readonly || !canComplete;
+
+  // C2 (2026-06-03): KYC doc bytes are served via a row-scoped, bearer-authed
+  // endpoint (raw /uploads/kyc is blocked). Fetch the blob then open it.
+  const openKycDocument = async (kdvId: string) => {
+    const win = window.open('', '_blank');
+    try {
+      const url = await kycService.getDocumentObjectUrl(kdvId);
+      if (win) {win.location.href = url;} else {window.open(url, '_blank');}
+    } catch {
+      win?.close();
+      toast.error('Could not open the document.');
+    }
+  };
 
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
   const [remarks, setRemarks] = useState<Record<string, string>>({});
@@ -286,10 +299,12 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                     <div className="flex items-center gap-2 p-2 bg-card border rounded">
                       <FileText className="h-4 w-4 text-blue-500 shrink-0" />
                       <span className="text-sm flex-1 truncate">{doc.documentFileName}</span>
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={doc.documentFilePath} target="_blank" rel="noopener noreferrer">
-                          <Download className="h-3.5 w-3.5 mr-1" /> View
-                        </a>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openKycDocument(doc.id)}
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1" /> View
                       </Button>
                     </div>
                   ) : isPending && !effectiveReadonly ? (

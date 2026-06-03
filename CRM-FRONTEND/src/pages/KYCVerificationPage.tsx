@@ -24,6 +24,7 @@ import {
   useUploadKYCReport,
 } from '@/hooks/useKYC';
 import { usePermission } from '@/hooks/usePermissions';
+import { kycService } from '@/services/kyc';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { extractEditBlockedError } from '@/utils/editLock';
@@ -56,6 +57,20 @@ export const KYCVerificationPage: React.FC = () => {
   // may enter findings + complete. The read-only verifier sees view + download only.
   const canComplete = usePermission('kyc.complete');
   const { data: cycles = [] } = useKYCCycles(taskId || '');
+
+  // C2 (2026-06-03): KYC files are served via row-scoped, bearer-authed
+  // endpoints (raw /uploads/kyc is blocked). Fetch the blob then open it —
+  // open the tab synchronously first so the popup blocker doesn't eat it.
+  const openKycFile = async (fetchUrl: () => Promise<string>) => {
+    const win = window.open('', '_blank');
+    try {
+      const url = await fetchUrl();
+      if (win) {win.location.href = url;} else {window.open(url, '_blank');}
+    } catch {
+      win?.close();
+      toast.error('Could not open the file.');
+    }
+  };
 
   const handleVerify = async (status: 'PASS' | 'FAIL' | 'REFER') => {
     if (!taskId) {
@@ -243,10 +258,12 @@ export const KYCVerificationPage: React.FC = () => {
                     <p className="text-xs text-muted-foreground">Uploaded document</p>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={task.documentFilePath} target="_blank" rel="noopener noreferrer">
-                    <Download className="h-4 w-4 mr-1" /> View
-                  </a>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openKycFile(() => kycService.getDocumentObjectUrl(taskId || ''))}
+                >
+                  <Download className="h-4 w-4 mr-1" /> View
                 </Button>
               </div>
             </div>
@@ -388,15 +405,18 @@ export const KYCVerificationPage: React.FC = () => {
                   )}
                   {cy.rate_amount && <span>₹{cy.rate_amount}</span>}
                   {cy.report_file_path && (
-                    <a
-                      href={cy.report_file_path}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openKycFile(() =>
+                          kycService.getCycleReportObjectUrl(taskId || '', cy.cycle_number)
+                        )
+                      }
                       className="inline-flex items-center text-primary hover:underline"
                     >
                       <Download className="h-3.5 w-3.5 mr-1" />
                       {cy.report_file_name || 'Report'}
-                    </a>
+                    </button>
                   )}
                   <Badge variant="outline" className={cy.billed ? 'bg-green-50' : 'bg-yellow-50'}>
                     {cy.billed ? 'Billed' : 'Billable'}
