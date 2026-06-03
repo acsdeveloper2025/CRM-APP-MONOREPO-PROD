@@ -386,7 +386,11 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
             <DialogTitle>Backend Review &amp; Finalize</DialogTitle>
           </DialogHeader>
           {reviewTaskId && (
-            <FieldReviewDecisionForm taskId={reviewTaskId} onCompleted={handleReviewCompleted} />
+            <FieldReviewDecisionForm
+              taskId={reviewTaskId}
+              caseId={caseId}
+              onCompleted={handleReviewCompleted}
+            />
           )}
         </DialogContent>
       </Dialog>

@@ -496,6 +496,7 @@ export interface VerificationTaskStats {
   pending: number;
   assigned: number;
   inProgress: number;
+  submittedForReview: number;
   completed: number;
   revoked: number;
   open: number;
