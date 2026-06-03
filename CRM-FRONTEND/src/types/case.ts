@@ -127,6 +127,7 @@ export interface Case {
   completedTasks?: number;
   pendingTasks?: number;
   inProgressTasks?: number;
+  submittedForReviewTasks?: number;
 }
 
 export interface CaseFilters {

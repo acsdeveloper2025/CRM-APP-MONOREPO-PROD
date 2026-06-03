@@ -171,6 +171,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(task_stats.completed_tasks, 0) as "completedTasks",
         COALESCE(task_stats.pending_tasks, 0) as "pendingTasks",
         COALESCE(task_stats.in_progress_tasks, 0) as "inProgressTasks",
+        COALESCE(task_stats.submitted_for_review_tasks, 0) as "submittedForReviewTasks",
         COALESCE(task_stats.revisit_tasks, 0) as "revisitTasks",
         -- Representative assigned agent from tasks
         assigned_user.id as assigned_to,
@@ -203,6 +204,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
           COUNT(*) FILTER (WHERE status = 'COMPLETED') as completed_tasks,
           COUNT(*) FILTER (WHERE status = 'PENDING') as pending_tasks,
           COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as in_progress_tasks,
+          COUNT(*) FILTER (WHERE status = 'SUBMITTED_FOR_REVIEW') as submitted_for_review_tasks,
           COUNT(*) FILTER (WHERE task_type = 'REVISIT') as revisit_tasks
         FROM verification_tasks
         WHERE case_id = c.id
@@ -235,6 +237,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       completedTasks: row.completedTasks || 0,
       pendingTasks: row.pendingTasks || 0,
       inProgressTasks: row.inProgressTasks || 0,
+      submittedForReviewTasks: row.submittedForReviewTasks || 0,
       revisitTasks: row.revisitTasks || 0,
       // Transform client data to nested object
       client: row.clientName
