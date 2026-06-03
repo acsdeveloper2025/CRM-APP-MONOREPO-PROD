@@ -48,12 +48,10 @@ export const DashboardPage: React.FC = () => {
   const hasCasesAccess = usePermission('page.cases');
   const hasTasksAccess = usePermission('page.tasks');
 
-  // KYC card now mirrors the cycle-based KYC MIS (Pending+Completed model).
-  // Gated like the KYC-page MIS row (report/analytics viewers only).
-  // Call each usePermission unconditionally (rules-of-hooks) then combine.
-  const canReportGenerate = usePermission('report.generate');
-  const canAnalyticsView = usePermission('analytics.view');
-  const canViewMis = canReportGenerate || canAnalyticsView;
+  // KYC card mirrors the KYC summary metrics (Total/Pending/Completed).
+  // Gated like the KYC-page cards. (analytics.view is not a real permission —
+  // report.generate is the only gate.)
+  const canViewMis = usePermission('report.generate');
   const { data: kycMis } = useKYCMis(canViewMis);
 
   // Fetch dashboard data via Unified KPI Engine
@@ -108,9 +106,7 @@ export const DashboardPage: React.FC = () => {
   const kycStats = kycStatsRaw || {
     total: 0,
     pending: 0,
-    passed: 0,
-    failed: 0,
-    referred: 0,
+    completed: 0,
     verifiedToday: 0,
   };
 

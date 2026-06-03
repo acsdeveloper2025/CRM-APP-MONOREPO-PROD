@@ -460,6 +460,20 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
       throw err;
     }
 
+    // H1 (2026-06-03): KYC is modelled with ONE synthetic verification_type
+    // ('KYC') per case, so verification_tasks_active_unique_idx allows only a
+    // single active KYC task per case. Two KYC documents would make the second
+    // verification_tasks INSERT trip that unique index, rolling back the whole
+    // transaction with an opaque "Duplicate entry" 409 and no case created.
+    // Reject up front with a clear message instead of that confusing failure.
+    if (kycTaskCount > 1) {
+      const err = new Error(
+        'Only one KYC document can be attached per case. Create separate cases for additional KYC documents.'
+      );
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+
     if (fieldTaskCount > 0) {
       for (let i = 0; i < fieldTaskCount; i++) {
         const task = (verificationTasksFromRequest as Record<string, unknown>[])[i];

@@ -833,9 +833,7 @@ export const exportDashboardReport = async (req: AuthenticatedRequest, res: Resp
       { metric: 'Completed Tasks', value: lc.tasks.completed.value },
       { metric: 'KYC Total', value: kpi.kyc.total },
       { metric: 'KYC Pending', value: kpi.kyc.pending },
-      { metric: 'KYC Passed', value: kpi.kyc.passed },
-      { metric: 'KYC Failed', value: kpi.kyc.failed },
-      { metric: 'KYC Referred', value: kpi.kyc.referred },
+      { metric: 'KYC Completed', value: kpi.kyc.completed },
     ];
 
     const distributionSlices = [

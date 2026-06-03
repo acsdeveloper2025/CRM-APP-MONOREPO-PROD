@@ -44,9 +44,7 @@ export interface VerificationOperationsKPI {
   kyc: {
     total: number;
     pending: number;
-    passed: number;
-    failed: number;
-    referred: number;
+    completed: number;
     verifiedToday: number;
   };
 
@@ -188,9 +186,7 @@ export const useDashboardKPI = () => {
   const kycStats = kpi?.kyc || {
     total: 0,
     pending: 0,
-    passed: 0,
-    failed: 0,
-    referred: 0,
+    completed: 0,
     verifiedToday: 0,
   };
 

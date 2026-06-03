@@ -289,36 +289,6 @@ class KYCService {
     });
     return response.data;
   }
-
-  /**
-   * Canonical 5-card stats for /kyc-verification/* pages.
-   * Mirrors the list endpoint's BASE WHERE (scope + soft-delete) via
-   * shared BE helper — partition counters reflect the full in-scope
-   * KYC pool regardless of route narrowing.
-   */
-  async getStats(): Promise<KYCTaskStats> {
-    const envelope = await apiService.get<KYCTaskStats>('/kyc/tasks/stats');
-    return envelope.data as KYCTaskStats;
-  }
-}
-
-export interface KYCTaskStats {
-  total: number;
-  pending: number;
-  assigned: number;
-  inProgress: number;
-  completed: number;
-  revoked: number;
-  open: number;
-  positive: number;
-  negative: number;
-  referred: number;
-  fraud: number;
-  positiveRate: number;
-  completedToday: number;
-  completedThisWeek: number;
-  agingOver3Days: number;
-  avgVerifyHours: number;
 }
 
 // P3/P6 (2026-06-02): one row per reverification cycle.

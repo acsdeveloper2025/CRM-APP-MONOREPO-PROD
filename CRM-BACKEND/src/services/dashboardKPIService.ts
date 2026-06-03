@@ -64,9 +64,7 @@ export interface VerificationOperationsKPI {
   kyc: {
     total: number;
     pending: number;
-    passed: number;
-    failed: number;
-    referred: number;
+    completed: number;
     verifiedToday: number;
   };
 
@@ -457,11 +455,8 @@ export class DashboardKPIService {
     const kycQuery = `
       SELECT
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE kdv.verification_status = 'PENDING') as pending,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Positive') as passed,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Negative') as failed,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Refer') as referred,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Fraud') as fraud,
+        COUNT(*) FILTER (WHERE kdv.verification_status <> 'COMPLETED') as pending,
+        COUNT(*) FILTER (WHERE kdv.verification_status = 'COMPLETED') as completed,
         COUNT(*) FILTER (WHERE kdv.verified_at >= CURRENT_DATE) as verified_today
       FROM kyc_document_verifications kdv
       JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
@@ -495,9 +490,7 @@ export class DashboardKPIService {
     const kycStats = kycRes.rows[0] || {
       total: 0,
       pending: 0,
-      passed: 0,
-      failed: 0,
-      referred: 0,
+      completed: 0,
       verifiedToday: 0,
     };
 
@@ -562,9 +555,7 @@ export class DashboardKPIService {
       kyc: {
         total: Number(kycStats.total) || 0,
         pending: Number(kycStats.pending) || 0,
-        passed: Number(kycStats.passed) || 0,
-        failed: Number(kycStats.failed) || 0,
-        referred: Number(kycStats.referred) || 0,
+        completed: Number(kycStats.completed) || 0,
         verifiedToday: Number(kycStats.verifiedToday) || 0,
       },
 
