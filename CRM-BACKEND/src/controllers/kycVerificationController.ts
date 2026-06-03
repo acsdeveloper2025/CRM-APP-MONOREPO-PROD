@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import { promises as fs } from 'fs';
+import { promises as fs, createReadStream, existsSync, statSync } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { query, pool, wrapClient } from '@/config/database';
@@ -2027,6 +2027,113 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
   } catch (error) {
     logger.error('Error getting KYC tasks for case:', error);
     res.status(500).json({ success: false, message: 'Failed to get KYC tasks' });
+  }
+};
+
+// C2 (2026-06-03): scoped serve of KYC document/report bytes. The raw
+// /uploads/kyc/* static mount is now blocked (app.ts) because it carried no
+// per-row scope — any authenticated user could fetch KYC PII by guessing a
+// filename (IDOR, same class as the verification-image fix). Bytes flow only
+// through these requireKycRowAccess-gated handlers, keyed by kdv id.
+const KYC_MIME_BY_EXT: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+};
+
+const streamKycUploadFile = (
+  res: Response,
+  dbPath: string | null | undefined,
+  fileName: string | null | undefined
+): void => {
+  if (!dbPath) {
+    res.status(404).json({ success: false, message: 'File not found' });
+    return;
+  }
+  const resolved = path.resolve(process.cwd(), dbPath.replace(/^\/+/, ''));
+  const kycBase = path.resolve(process.cwd(), 'uploads', 'kyc');
+  // Path-traversal guard: only ever serve files under uploads/kyc.
+  if (resolved !== kycBase && !resolved.startsWith(kycBase + path.sep)) {
+    res.status(404).json({ success: false, message: 'File not found' });
+    return;
+  }
+  if (!existsSync(resolved)) {
+    res.status(404).json({ success: false, message: 'File not found on server' });
+    return;
+  }
+  const ext = path.extname(resolved).toLowerCase();
+  res.setHeader('Content-Type', KYC_MIME_BY_EXT[ext] || 'application/octet-stream');
+  res.setHeader(
+    'Content-Disposition',
+    `inline; filename="${(fileName || path.basename(resolved)).replace(/"/g, '')}"`
+  );
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('Content-Length', String(statSync(resolved).size));
+  createReadStream(resolved).pipe(res);
+};
+
+// GET /api/kyc/tasks/:taskId/document — scoped bytes for the uploaded KYC doc.
+export const serveKYCDocument = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const taskId = String(req.params.taskId || '');
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+    const result = await query<{
+      documentFilePath: string | null;
+      documentFileName: string | null;
+    }>(
+      `SELECT document_file_path, document_file_name
+         FROM kyc_document_verifications WHERE id = $1 AND deleted_at IS NULL`,
+      [taskId]
+    );
+    const row = result.rows[0];
+    if (!row?.documentFilePath) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'No document uploaded for this task' });
+    }
+    return streamKycUploadFile(res, row.documentFilePath, row.documentFileName);
+  } catch (error) {
+    logger.error('Error serving KYC document:', error);
+    return res.status(500).json({ success: false, message: 'Failed to serve document' });
+  }
+};
+
+// GET /api/kyc/tasks/:taskId/cycles/:cycleNumber/report — scoped completion report.
+export const serveKYCCycleReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const taskId = String(req.params.taskId || '');
+    const cycleNumber = parseInt(String(req.params.cycleNumber || ''), 10);
+    if (!Number.isFinite(cycleNumber)) {
+      return res.status(400).json({ success: false, message: 'Invalid cycle number' });
+    }
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+    const result = await query<{
+      reportFilePath: string | null;
+      reportFileName: string | null;
+    }>(
+      `SELECT c.report_file_path, c.report_file_name
+         FROM kyc_verification_cycles c
+         JOIN kyc_document_verifications kdv ON kdv.verification_task_id = c.verification_task_id
+        WHERE kdv.id = $1 AND c.cycle_number = $2`,
+      [taskId, cycleNumber]
+    );
+    const row = result.rows[0];
+    if (!row?.reportFilePath) {
+      return res.status(404).json({ success: false, message: 'No report for this cycle' });
+    }
+    return streamKycUploadFile(res, row.reportFilePath, row.reportFileName);
+  } catch (error) {
+    logger.error('Error serving KYC cycle report:', error);
+    return res.status(500).json({ success: false, message: 'Failed to serve report' });
   }
 };
 

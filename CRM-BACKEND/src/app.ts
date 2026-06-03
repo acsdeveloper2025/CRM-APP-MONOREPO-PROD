@@ -204,6 +204,18 @@ app.use(
       });
       return;
     }
+    // C2 (2026-06-03): KYC document/report bytes carried no per-row scope at the
+    // raw mount (any authed user could fetch KYC PII by filename — IDOR). They
+    // are now served only via the row-scoped /api/kyc/tasks/:id/document +
+    // /cycles/:n/report handlers.
+    if (req.path.startsWith('/kyc/')) {
+      res.status(403).json({
+        success: false,
+        message: 'KYC documents must be fetched via the scoped KYC document endpoint',
+        error: { code: 'FORBIDDEN_RAW_KYC_ACCESS' },
+      });
+      return;
+    }
     next();
   },
   // IMG-11 (audit 2026-06-01): positive max-age on the static assets that still

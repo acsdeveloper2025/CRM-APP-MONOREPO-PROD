@@ -231,6 +231,27 @@ class KYCService {
     return apiService.post(`/kyc/tasks/${taskId}/report`, formData);
   }
 
+  // C2 (2026-06-03): KYC document/report bytes are served only via the
+  // row-scoped, bearer-authenticated endpoints (the raw /uploads/kyc mount is
+  // blocked). Fetch as a blob and hand back an object URL the caller opens.
+  async getDocumentObjectUrl(taskId: string): Promise<string> {
+    const response = await apiService.getRaw<Blob>(
+      `/kyc/tasks/${taskId}/document`,
+      {},
+      { responseType: 'blob' }
+    );
+    return URL.createObjectURL(response.data);
+  }
+
+  async getCycleReportObjectUrl(taskId: string, cycleNumber: number): Promise<string> {
+    const response = await apiService.getRaw<Blob>(
+      `/kyc/tasks/${taskId}/cycles/${cycleNumber}/report`,
+      {},
+      { responseType: 'blob' }
+    );
+    return URL.createObjectURL(response.data);
+  }
+
   async getTasksForCase(caseId: string): Promise<ApiResponse<KYCTask[]>> {
     const response = await apiService.get<KYCTask[]>(`/kyc/cases/${caseId}/tasks`);
     if (response?.success && Array.isArray(response.data)) {

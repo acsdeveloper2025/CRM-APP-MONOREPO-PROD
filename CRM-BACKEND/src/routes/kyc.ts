@@ -24,6 +24,8 @@ import {
   reverifyKYCTask,
   listKycCycles,
   getKycMis,
+  serveKYCDocument,
+  serveKYCCycleReport,
 } from '@/controllers/kycVerificationController';
 import {
   EnterpriseCache,
@@ -105,6 +107,16 @@ router.get(
 // the rows exist server-side. Verifying KYC docs still requires
 // kyc.verify (handled per-action by the verify endpoint).
 router.get('/cases/:caseId/tasks', authorizeAny(['kyc.view', 'case.view']), getKYCTasksForCase);
+
+// C2 (2026-06-03): scoped serve of KYC document + per-cycle completion report
+// bytes (row-scoped via requireKycRowAccess in the handler). Replaces the raw
+// /uploads/kyc/* mount, which is now blocked at the static layer (app.ts).
+router.get('/tasks/:taskId/document', authorizeAny(['kyc.view', 'case.view']), serveKYCDocument);
+router.get(
+  '/tasks/:taskId/cycles/:cycleNumber/report',
+  authorizeAny(['kyc.view', 'case.view']),
+  serveKYCCycleReport
+);
 
 // Single KYC task detail
 router.get('/tasks/:taskId', authorize('kyc.view'), getKYCTaskDetail);
