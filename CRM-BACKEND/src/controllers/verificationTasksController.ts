@@ -2457,9 +2457,9 @@ export class VerificationTasksController {
       const targetStatus = reviewOn ? 'SUBMITTED_FOR_REVIEW' : 'COMPLETED';
       const updateResult = await client.query(
         `UPDATE verification_tasks
-         SET status = $3,
+         SET status = $3::varchar,
              verification_outcome = $1,
-             completed_at = CASE WHEN $3 = 'COMPLETED' THEN NOW() ELSE completed_at END,
+             completed_at = CASE WHEN $3::varchar = 'COMPLETED' THEN NOW() ELSE completed_at END,
              updated_at = NOW()
          WHERE id = $2
          RETURNING *`,
