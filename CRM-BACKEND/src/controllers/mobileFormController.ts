@@ -124,8 +124,8 @@ async function completeTaskOrThrowIfRevoked(client: PoolClient, taskId: string):
   const target = reviewOn ? 'SUBMITTED_FOR_REVIEW' : 'COMPLETED';
   const result = await client.query(
     `UPDATE verification_tasks
-        SET status = $2,
-            completed_at = CASE WHEN $2 = 'COMPLETED' THEN CURRENT_TIMESTAMP ELSE completed_at END,
+        SET status = $2::varchar,
+            completed_at = CASE WHEN $2::varchar = 'COMPLETED' THEN CURRENT_TIMESTAMP ELSE completed_at END,
             updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
         AND status = 'IN_PROGRESS'`,
