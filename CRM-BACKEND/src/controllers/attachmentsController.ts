@@ -130,20 +130,28 @@ export const enforceBackendUserCaseScope = async (
     getAssignedProductIds(userId),
   ]);
 
-  if (
-    !assignedClientIds ||
-    !assignedProductIds ||
-    assignedClientIds.length === 0 ||
-    assignedProductIds.length === 0
-  ) {
+  // 2026-06-03: mirror getCaseById's case-visibility semantics so this scope
+  // matches "can the user view this case". null assignments = unrestricted
+  // (allow), empty [] = explicitly no access (deny), non-empty = must include
+  // the case's client/product. Previously null was treated as DENY, so an
+  // unrestricted scoped-ops operator (no client/product assignments + no
+  // hierarchy) could open the case + field tasks via getCaseById but got a 404
+  // here — surfacing as an empty KYC tab in case detail (and blocked
+  // attachments). This realigns the two paths.
+  const row = caseResult.rows[0];
+  if (assignedClientIds && assignedClientIds.length === 0) {
     return false;
   }
-
-  const row = caseResult.rows[0];
-  return (
-    assignedClientIds.includes(Number(row.clientId)) &&
-    assignedProductIds.includes(Number(row.productId))
-  );
+  if (assignedProductIds && assignedProductIds.length === 0) {
+    return false;
+  }
+  if (assignedClientIds && !assignedClientIds.includes(Number(row.clientId))) {
+    return false;
+  }
+  if (assignedProductIds && !assignedProductIds.includes(Number(row.productId))) {
+    return false;
+  }
+  return true;
 };
 
 // Configure multer for file uploads
