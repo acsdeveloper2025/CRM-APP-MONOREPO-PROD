@@ -285,6 +285,7 @@ export const AllTasksPage: React.FC = () => {
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="ASSIGNED">Assigned</SelectItem>
                   <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                  <SelectItem value="SUBMITTED_FOR_REVIEW">Awaiting Review</SelectItem>
                   <SelectItem value="COMPLETED">Completed</SelectItem>
                   <SelectItem value="REVOKED">Revoked</SelectItem>
                 </SelectContent>

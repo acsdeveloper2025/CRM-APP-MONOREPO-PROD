@@ -198,7 +198,8 @@ export const CompletedTasksPage: React.FC = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Completed Tasks</h1>
           <p className="text-sm text-muted-foreground">
-            Verification tasks that have been completed.
+            Verification tasks finalized by a backend reviewer. Tasks awaiting review are not shown
+            here.
           </p>
         </div>
       </div>

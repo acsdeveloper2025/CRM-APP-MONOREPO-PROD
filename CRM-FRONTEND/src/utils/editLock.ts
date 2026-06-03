@@ -21,7 +21,12 @@ export type KycVerificationStatus =
 
 export type LockableStatus = TaskStatus | CaseStatus | KycVerificationStatus | string;
 
-const LOCKED_STATUSES = new Set<string>(['IN_PROGRESS', 'COMPLETED', 'REVOKED']);
+const LOCKED_STATUSES = new Set<string>([
+  'IN_PROGRESS',
+  'SUBMITTED_FOR_REVIEW',
+  'COMPLETED',
+  'REVOKED',
+]);
 
 export function isEditable(status: LockableStatus | null | undefined): boolean {
   if (!status) {
@@ -36,6 +41,9 @@ export function editBlockedReason(status: LockableStatus | null | undefined): st
   }
   if (status === 'IN_PROGRESS') {
     return 'Currently being processed; edits are not allowed.';
+  }
+  if (status === 'SUBMITTED_FOR_REVIEW') {
+    return 'Submitted for backend review; edits are not allowed.';
   }
   return `Already ${String(status).toLowerCase()}; edits are not allowed.`;
 }
