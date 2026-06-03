@@ -158,6 +158,16 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
   {
+    // Mandatory backend review: field verifications submitted by field
+    // executives awaiting a backend user's official Backend Final Result.
+    id: 'backend-review',
+    label: 'Backend Review',
+    href: '/backend-review',
+    icon: ClipboardList,
+    permissionCode: 'field_review.complete',
+    permission: { resource: 'tasks', action: 'read' },
+  },
+  {
     // 2026-06-02: two user-facing states (Pending / Completed) + All. The
     // per-status pages reuse KYCDashboardPage with a defaultStatus prop.
     id: 'kyc-verification',

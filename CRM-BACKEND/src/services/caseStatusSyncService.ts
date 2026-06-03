@@ -70,7 +70,10 @@ export class CaseStatusSyncService {
           counts.c++;
         } else if (s === 'REVOKED') {
           counts.rv++;
-        } else if (s === 'IN_PROGRESS') {
+        } else if (s === 'IN_PROGRESS' || s === 'SUBMITTED_FOR_REVIEW') {
+          // SUBMITTED_FOR_REVIEW = FE done, awaiting mandatory backend review.
+          // Counts as active work-in-progress: it must keep the case OUT of
+          // COMPLETED (c + rv == t) until the backend finalizes the task.
           counts.ip++;
         } else if (s === 'ASSIGNED') {
           counts.a++;
@@ -92,8 +95,9 @@ export class CaseStatusSyncService {
       } else if (counts.a > 0) {
         newStatus = 'ASSIGNED';
       } else {
-        // P > 0 by elimination (every task is in one of the 5 statuses
-        // and the four prior buckets are exhausted).
+        // P > 0 by elimination (every task is in one of the statuses and the
+        // four prior buckets — incl. SUBMITTED_FOR_REVIEW folded into ip — are
+        // exhausted).
         newStatus = 'PENDING';
       }
 
