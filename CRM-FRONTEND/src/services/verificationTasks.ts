@@ -282,6 +282,32 @@ export class VerificationTasksService {
   }
 
   /**
+   * Backend Final Decision (mandatory review): record the official Backend
+   * Final Result on a SUBMITTED_FOR_REVIEW field task and complete it.
+   * The FE submission is never modified — the decision is stored separately.
+   */
+  static async finalizeFieldReview(
+    taskId: string,
+    data: {
+      backendFinalResult: string;
+      remarks: string;
+      findings?: string;
+      observations?: string;
+      recommendation?: string;
+    }
+  ): Promise<VerificationTaskResponse> {
+    const response = await apiService.post(`/verification-tasks/${taskId}/finalize`, data);
+    if (response.success && response.data) {
+      validateResponse(VerificationTaskSchema, response.data, {
+        service: 'verificationTasks',
+        endpoint: 'POST /verification-tasks/:id/finalize',
+        strict: true,
+      });
+    }
+    return response.data as unknown as VerificationTaskResponse;
+  }
+
+  /**
    * Start working on a verification task
    */
   static async startTask(taskId: string): Promise<VerificationTaskResponse> {

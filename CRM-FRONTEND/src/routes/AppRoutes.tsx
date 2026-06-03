@@ -42,6 +42,11 @@ const CompletedTasksPage = React.lazy(() =>
 const AllTasksPage = React.lazy(() =>
   import('@/pages/AllTasksPage').then((module) => ({ default: module.AllTasksPage }))
 );
+const BackendReviewQueuePage = React.lazy(() =>
+  import('@/pages/BackendReviewQueuePage').then((module) => ({
+    default: module.BackendReviewQueuePage,
+  }))
+);
 const TaskDetailPage = React.lazy(() =>
   import('@/pages/TaskDetailPage').then((module) => ({ default: module.TaskDetailPage }))
 );
@@ -426,6 +431,14 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute permission="page.tasks">
                 <AllTasksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/backend-review"
+            element={
+              <ProtectedRoute permission="field_review.complete">
+                <BackendReviewQueuePage />
               </ProtectedRoute>
             }
           />
