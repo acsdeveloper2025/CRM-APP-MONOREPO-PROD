@@ -1,33 +1,15 @@
-import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { LoadingState } from '@/components/ui/loading';
-import {
-  ArrowLeft,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  FileText,
-  User,
-  Phone,
-  Calendar,
-  Download,
-} from 'lucide-react';
-import {
-  useKYCTaskDetail,
-  useVerifyKYCDocument,
-  useKYCCycles,
-  useUploadKYCReport,
-} from '@/hooks/useKYC';
+import { ArrowLeft, FileText, User, Phone, Calendar, Download } from 'lucide-react';
+import { useKYCTaskDetail, useKYCCycles } from '@/hooks/useKYC';
 import { usePermission } from '@/hooks/usePermissions';
 import { kycService } from '@/services/kyc';
+import { KYCCompletionForm } from '@/components/kyc/KYCCompletionForm';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { extractEditBlockedError } from '@/utils/editLock';
 
 // KYC redesign (2026-06-02): users see only Pending / Completed.
 const kycDisplayStatus = (status: string): { label: string; color: string } =>
@@ -46,13 +28,8 @@ const OUTCOME_COLORS: Record<string, string> = {
 export const KYCVerificationPage: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
-  const [remarks, setRemarks] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [reportFile, setReportFile] = useState<File | null>(null);
 
   const { data: task, isLoading } = useKYCTaskDetail(taskId || '');
-  const { mutateAsync: verify, isPending: isVerifying } = useVerifyKYCDocument();
-  const { mutateAsync: uploadReport, isPending: isUploadingReport } = useUploadKYCReport();
   // KYC Verifier read-only model (2026-06-02): only the Backend User (kyc.complete)
   // may enter findings + complete. The read-only verifier sees view + download only.
   const canComplete = usePermission('kyc.complete');
@@ -72,41 +49,6 @@ export const KYCVerificationPage: React.FC = () => {
     }
   };
 
-  const handleVerify = async (status: 'PASS' | 'FAIL' | 'REFER') => {
-    if (!taskId) {
-      return;
-    }
-
-    if (status === 'FAIL' && !rejectionReason.trim()) {
-      toast.error('Please provide a rejection reason');
-      return;
-    }
-
-    try {
-      // P2 (2026-06-02): attach the report file (if any) to the active cycle
-      // BEFORE completing — completion finalizes that cycle.
-      if (reportFile) {
-        await uploadReport({ taskId, file: reportFile });
-      }
-      await verify({
-        taskId,
-        data: {
-          status,
-          remarks: remarks.trim() || undefined,
-          rejectionReason: status === 'FAIL' ? rejectionReason.trim() : undefined,
-        },
-      });
-      toast.success(`Document marked as ${status}`);
-      navigate('/kyc-verification/all-kyc');
-    } catch (error) {
-      const editBlocked = extractEditBlockedError(error);
-      const msg =
-        editBlocked?.message ||
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to verify document';
-      toast.error(msg);
-    }
-  };
 
   if (isLoading) {
     return <LoadingState />;
@@ -303,74 +245,19 @@ export const KYCVerificationPage: React.FC = () => {
       </Card>
 
       {/* Verification Decision — shown for any non-terminal doc (no Start step);
-          only for the Backend User executor (kyc.complete). */}
+          only for the Backend User executor (kyc.complete). Single mandatory
+          Remark + KYC Result dropdown + optional verifier document; Complete
+          stays disabled until Remark + Result are filled. */}
       {canVerifyNow && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Verification Decision</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Remarks (Optional)</Label>
-              <Textarea
-                placeholder="Add any observations or notes..."
-                value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <Label>Rejection Reason (Required for Fail)</Label>
-              <Textarea
-                placeholder="Explain why the document verification failed..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <Label>Report (Optional)</Label>
-              <input
-                type="file"
-                aria-label="Attach report"
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-muted/80"
-                onChange={(e) => setReportFile(e.target.files?.[0] ?? null)}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Attach the source&apos;s reply / report file (PDF, image, or Word). Saved with this
-                verification.
-              </p>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <Button
-                className="bg-green-600 hover:bg-green-700 text-white flex-1"
-                onClick={() => handleVerify('PASS')}
-                disabled={isVerifying || isUploadingReport}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Pass
-              </Button>
-              <Button
-                className="bg-red-600 hover:bg-red-700 text-white flex-1"
-                onClick={() => handleVerify('FAIL')}
-                disabled={isVerifying || isUploadingReport}
-              >
-                <XCircle className="h-4 w-4 mr-2" />
-                Fail
-              </Button>
-              <Button
-                className="bg-purple-600 hover:bg-purple-700 text-white flex-1"
-                onClick={() => handleVerify('REFER')}
-                disabled={isVerifying || isUploadingReport}
-              >
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                Refer
-              </Button>
-            </div>
+          <CardContent>
+            <KYCCompletionForm
+              taskId={taskId || ''}
+              onCompleted={() => navigate('/kyc-verification/all-kyc')}
+            />
           </CardContent>
         </Card>
       )}

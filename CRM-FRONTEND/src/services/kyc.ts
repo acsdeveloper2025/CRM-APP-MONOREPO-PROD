@@ -161,7 +161,7 @@ class KYCService {
 
   async verifyDocument(
     taskId: string,
-    data: { status: string; remarks?: string; rejectionReason?: string }
+    data: { status?: string; finalStatus?: string; remarks?: string; rejectionReason?: string }
   ): Promise<ApiResponse<{ id: string; status: string }>> {
     return apiService.put(`/kyc/tasks/${taskId}/verify`, data);
   }
@@ -207,6 +207,19 @@ class KYCService {
     }
   ): Promise<ApiResponse<{ id: string; verificationTaskId: string }>> {
     return apiService.post(`/kyc/tasks/${taskId}/recheck-clone`, payload);
+  }
+
+  // 2026-06-03: edit a non-terminal KYC doc's details (number / holder / custom
+  // fields) from the case-detail KYC card.
+  async updateDetails(
+    taskId: string,
+    payload: {
+      documentNumber?: string;
+      documentHolderName?: string;
+      documentDetails?: Record<string, string>;
+    }
+  ): Promise<ApiResponse<unknown>> {
+    return apiService.put(`/kyc/tasks/${taskId}/details`, payload);
   }
 
   async getCycles(taskId: string): Promise<ApiResponse<KYCCycle[]>> {

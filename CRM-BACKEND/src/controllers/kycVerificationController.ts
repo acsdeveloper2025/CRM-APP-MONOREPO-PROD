@@ -649,12 +649,21 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
       });
     }
 
-    if ((finalStatus === 'Negative' || finalStatus === 'Fraud') && !rejectionReason) {
+    // Redesign 2026-06-03: Remark is the SINGLE mandatory free-text field for
+    // every outcome (the separate "rejection reason" input was removed from the
+    // UI). For Negative/Fraud the rejection_reason column is backfilled from the
+    // remark so historical reads still surface a reason.
+    const trimmedRemarks = typeof remarks === 'string' ? remarks.trim() : '';
+    if (!trimmedRemarks) {
       return res.status(400).json({
         success: false,
-        message: `Rejection reason is required for ${finalStatus} outcome`,
+        message: 'Remark is required to complete the KYC verification',
+        error: { code: 'REMARK_REQUIRED' },
       });
     }
+    const effectiveRejectionReason =
+      (typeof rejectionReason === 'string' && rejectionReason.trim()) ||
+      (finalStatus === 'Negative' || finalStatus === 'Fraud' ? trimmedRemarks : null);
 
     // P15.M-6 — row-level scope check before any DB mutation.
     const access = await requireKycRowAccess(req, taskId);
@@ -696,7 +705,7 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
              verified_by = $4, verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
          WHERE id = $5
          RETURNING id, verification_task_id, case_id`,
-        [finalStatus, remarks || null, rejectionReason || null, userId, taskId]
+        [finalStatus, trimmedRemarks, effectiveRejectionReason, userId, taskId]
       );
 
       if (updateResult.rows.length === 0) {
@@ -1922,6 +1931,98 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
   } catch (error) {
     logger.error('Error getting KYC tasks for case:', error);
     res.status(500).json({ success: false, message: 'Failed to get KYC tasks' });
+  }
+};
+
+// PUT /api/kyc/tasks/:taskId/details
+// 2026-06-03: edit a NON-terminal KYC document's details (number / holder /
+// per-type custom fields) from the case-detail KYC card — e.g. to fix a value
+// entered wrong or left missing at creation. Management action (assigner /
+// backend user), row-scoped; the read-only verifier cannot reach it (route
+// perms). Completed/revoked docs are immutable — use Recheck to redo one.
+export const updateKYCDocumentDetails = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const taskId = String(req.params.taskId || '');
+    const userId = req.user?.id;
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+
+    const current = await query<{ verificationStatus: string }>(
+      `SELECT verification_status FROM kyc_document_verifications WHERE id = $1 AND deleted_at IS NULL`,
+      [taskId]
+    );
+    const row0 = current.rows[0];
+    if (!row0) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+    if (row0.verificationStatus === 'COMPLETED' || row0.verificationStatus === 'REVOKED') {
+      return res.status(409).json({
+        success: false,
+        message:
+          'This KYC document is already completed and cannot be edited. Use Recheck to redo it.',
+        error: { code: 'KYC_TERMINAL_IMMUTABLE' },
+      });
+    }
+
+    const body = req.body as {
+      documentNumber?: string;
+      documentHolderName?: string;
+      documentDetails?: Record<string, string>;
+    };
+    const documentNumber =
+      typeof body.documentNumber === 'string' ? body.documentNumber.trim() : undefined;
+    const documentHolderName =
+      typeof body.documentHolderName === 'string' ? body.documentHolderName.trim() : undefined;
+    const documentDetails =
+      body.documentDetails && typeof body.documentDetails === 'object'
+        ? JSON.stringify(body.documentDetails)
+        : undefined;
+
+    if (
+      documentNumber === undefined &&
+      documentHolderName === undefined &&
+      documentDetails === undefined
+    ) {
+      return res.status(400).json({ success: false, message: 'No fields to update' });
+    }
+
+    const result = await query(
+      `UPDATE kyc_document_verifications
+         SET document_number = COALESCE($2, document_number),
+             document_holder_name = COALESCE($3, document_holder_name),
+             document_details = COALESCE($4::jsonb, document_details),
+             updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING id, document_number, document_holder_name, document_details`,
+      [taskId, documentNumber ?? null, documentHolderName ?? null, documentDetails ?? null]
+    );
+
+    await createAuditLog({
+      userId,
+      action: 'KYC_DETAILS_UPDATED',
+      entityType: 'KYC',
+      entityId: taskId,
+      details: {
+        updatedFields: [
+          documentNumber !== undefined ? 'documentNumber' : null,
+          documentHolderName !== undefined ? 'documentHolderName' : null,
+          documentDetails !== undefined ? 'documentDetails' : null,
+        ].filter(Boolean),
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'KYC document details updated',
+    });
+  } catch (error) {
+    logger.error('Error updating KYC document details:', error);
+    return res
+      .status(500)
+      .json({ success: false, message: 'Failed to update KYC document details' });
   }
 };
 
