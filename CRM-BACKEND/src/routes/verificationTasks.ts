@@ -1,5 +1,8 @@
 // Disabled unbound-method rule for this file as it uses method references in routes
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs/promises';
 import {
   VerificationTasksController,
   exportTasksToExcel,
@@ -30,6 +33,37 @@ import { createAuditLog } from '@/utils/auditLogger';
 import { logger } from '@/utils/logger';
 
 const router = express.Router();
+
+// Multer config for the optional Backend Final Review report file (mirrors the
+// KYC report-upload storage path). 20MB cap; PDF / image / Word only.
+const reportStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const uploadDir = path.join(process.cwd(), 'uploads', 'field-reports');
+    fs.mkdir(uploadDir, { recursive: true })
+      .then(() => cb(null, uploadDir))
+      .catch(() => cb(null, uploadDir));
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}_${Math.round(Math.random() * 1e9)}`;
+    const ext = path.extname(file.originalname);
+    cb(null, `field_report_${uniqueSuffix}${ext}`);
+  },
+});
+const reportUpload = multer({
+  storage: reportStorage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/jpg',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
 
 // =====================================================
 // VERIFICATION TASKS ROUTES
@@ -185,6 +219,7 @@ router.post(
   '/verification-tasks/:taskId/finalize',
   authenticateToken,
   authorize('field_review.complete'),
+  reportUpload.single('report'),
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   VerificationTasksController.finalizeFieldReview.bind(VerificationTasksController)
 );

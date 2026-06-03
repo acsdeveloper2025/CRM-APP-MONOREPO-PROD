@@ -14,6 +14,7 @@ import {
   Copy,
   Edit,
   RefreshCw,
+  ClipboardCheck,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -65,6 +66,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
       PENDING: Clock,
       ASSIGNED: UserCheck,
       IN_PROGRESS: Play,
+      SUBMITTED_FOR_REVIEW: ClipboardCheck,
       COMPLETED: CheckCircle,
       REVOKED: X,
     };
@@ -290,7 +292,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                     <td className="px-4 py-4 whitespace-nowrap">
                       <Badge className={getTaskStatusBadgeStyle(task.status)}>
                         <StatusIcon className="h-3 w-3 mr-1" />
-                        {getStatusLabel(task.status)}
+                        {task.status === 'SUBMITTED_FOR_REVIEW'
+                          ? 'Awaiting Review'
+                          : getStatusLabel(task.status)}
                       </Badge>
                     </td>
 

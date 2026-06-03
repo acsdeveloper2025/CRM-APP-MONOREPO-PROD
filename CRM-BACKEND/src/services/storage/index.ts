@@ -63,6 +63,9 @@ export const StorageKeys = {
   kycDocument: (caseId: string, kycId: number | string, docCode: string, ext: string): string =>
     `kyc/${caseId}/${kycId}-${docCode}.${ext.replace(/^\./, '')}`,
 
+  fieldReport: (caseId: string, taskId: string, ext: string): string =>
+    `field-reports/${caseId}/${taskId}-report.${ext.replace(/^\./, '')}`,
+
   templateReport: (caseId: string, submissionId: string, reportId: string): string =>
     `template-reports/${caseId}/${submissionId}-${reportId}.html`,
 

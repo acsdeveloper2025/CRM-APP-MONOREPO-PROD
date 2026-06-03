@@ -40,6 +40,7 @@ interface TasksStatsResponse {
   pending: number;
   assigned: number;
   inProgress: number;
+  submittedForReview: number;
   completed: number;
   revoked: number;
   urgent: number;
@@ -61,6 +62,7 @@ const STATUS_COLORS: Record<string, string> = {
   PENDING: '#f59e0b',
   ASSIGNED: '#3b82f6',
   IN_PROGRESS: '#8b5cf6',
+  SUBMITTED_FOR_REVIEW: '#f97316',
   COMPLETED: '#10b981',
   REVOKED: '#ef4444',
 };
@@ -119,10 +121,22 @@ export const TasksAnalytics: React.FC = () => {
         { name: 'Pending', value: stats?.pending ?? 0, color: STATUS_COLORS.PENDING },
         { name: 'Assigned', value: stats?.assigned ?? 0, color: STATUS_COLORS.ASSIGNED },
         { name: 'In Progress', value: stats?.inProgress ?? 0, color: STATUS_COLORS.IN_PROGRESS },
+        {
+          name: 'Awaiting Review',
+          value: stats?.submittedForReview ?? 0,
+          color: STATUS_COLORS.SUBMITTED_FOR_REVIEW,
+        },
         { name: 'Completed', value: stats?.completed ?? 0, color: STATUS_COLORS.COMPLETED },
         { name: 'Revoked', value: stats?.revoked ?? 0, color: STATUS_COLORS.REVOKED },
       ].filter((d) => d.value > 0),
-    [stats?.pending, stats?.assigned, stats?.inProgress, stats?.completed, stats?.revoked]
+    [
+      stats?.pending,
+      stats?.assigned,
+      stats?.inProgress,
+      stats?.submittedForReview,
+      stats?.completed,
+      stats?.revoked,
+    ]
   );
 
   const typeData = useMemo(

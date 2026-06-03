@@ -145,7 +145,13 @@ export interface CompleteVerificationTaskRequest {
   formSubmissionId?: string;
 }
 
-export type TaskStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'REVOKED';
+export type TaskStatus =
+  | 'PENDING'
+  | 'ASSIGNED'
+  | 'IN_PROGRESS'
+  | 'SUBMITTED_FOR_REVIEW'
+  | 'COMPLETED'
+  | 'REVOKED';
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
@@ -423,6 +429,7 @@ export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
   PENDING: 'gray',
   ASSIGNED: 'blue',
   IN_PROGRESS: 'yellow',
+  SUBMITTED_FOR_REVIEW: 'orange',
   COMPLETED: 'green',
   REVOKED: 'red',
 };

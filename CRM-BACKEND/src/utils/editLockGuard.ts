@@ -8,10 +8,11 @@
  * mutation through assertEditable() before issuing the UPDATE.
  */
 
-export type EditLockedStatus = 'IN_PROGRESS' | 'COMPLETED' | 'REVOKED';
+export type EditLockedStatus = 'IN_PROGRESS' | 'SUBMITTED_FOR_REVIEW' | 'COMPLETED' | 'REVOKED';
 
 const LOCKED_STATUSES: ReadonlySet<string> = new Set<EditLockedStatus>([
   'IN_PROGRESS',
+  'SUBMITTED_FOR_REVIEW',
   'COMPLETED',
   'REVOKED',
 ]);

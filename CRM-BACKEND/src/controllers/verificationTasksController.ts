@@ -6,6 +6,10 @@ import type {
   UpdateVerificationTaskData,
   CompleteVerificationTaskData,
 } from '../types/verificationTask';
+import crypto from 'crypto';
+import fs from 'fs/promises';
+import path from 'path';
+import { storage as objectStorage, StorageKeys } from '@/services/storage';
 import { createAuditLog } from '../utils/auditLogger';
 import { enforceBackendUserCaseScope } from './attachmentsController';
 import { checkEditable, buildEditBlockedResponse } from '@/utils/editLockGuard';
@@ -883,6 +887,7 @@ export class VerificationTasksController {
           COUNT(*) FILTER (WHERE vt.status = 'PENDING') as pending_count,
           COUNT(*) FILTER (WHERE vt.status = 'ASSIGNED') as assigned_count,
           COUNT(*) FILTER (WHERE vt.status = 'IN_PROGRESS') as in_progress_count,
+          COUNT(*) FILTER (WHERE vt.status = 'SUBMITTED_FOR_REVIEW') as submitted_for_review_count,
           COUNT(*) FILTER (WHERE vt.status = 'COMPLETED') as completed_count,
           COUNT(*) FILTER (WHERE vt.status = 'REVOKED') as revoked_count,
           COUNT(*) FILTER (WHERE vt.priority = 'URGENT') as urgent_count,
@@ -956,6 +961,7 @@ export class VerificationTasksController {
             pending: parseInt(stats.pendingCount || '0'),
             assigned: parseInt(stats.assignedCount || '0'),
             inProgress: parseInt(stats.inProgressCount || '0'),
+            submittedForReview: parseInt(stats.submittedForReviewCount || '0'),
             completed: parseInt(stats.completedCount || '0'),
             revoked: parseInt(stats.revokedCount || '0'),
             // P16: onHold dropped per workflow-audit (ON_HOLD is not a
@@ -1012,6 +1018,7 @@ export class VerificationTasksController {
           COUNT(*) FILTER (WHERE vt.status = 'PENDING') as pending_count,
           COUNT(*) FILTER (WHERE vt.status = 'ASSIGNED') as assigned_count,
           COUNT(*) FILTER (WHERE vt.status = 'IN_PROGRESS') as in_progress_count,
+          COUNT(*) FILTER (WHERE vt.status = 'SUBMITTED_FOR_REVIEW') as submitted_for_review_count,
           COUNT(*) FILTER (WHERE vt.status = 'COMPLETED') as completed_count,
           COUNT(*) FILTER (WHERE vt.status = 'REVOKED') as revoked_count,
           COUNT(*) FILTER (WHERE vt.status IN ('PENDING','ASSIGNED','IN_PROGRESS')) as open_count,
@@ -1147,6 +1154,7 @@ export class VerificationTasksController {
           pending: num('pendingCount'),
           assigned: num('assignedCount'),
           inProgress: num('inProgressCount'),
+          submittedForReview: num('submittedForReviewCount'),
           completed: num('completedCount'),
           revoked: num('revokedCount'),
           open: num('openCount'),
@@ -2635,6 +2643,25 @@ export class VerificationTasksController {
       );
       const feSubmissionId: string | null = subResult.rows[0]?.id ?? null;
 
+      // Optional backend report file (mirrors the KYC report-storage path):
+      // persist bytes to object storage + keep a disk path, then record report_*.
+      let reportFilePath: string | null = null;
+      let reportFileName: string | null = null;
+      let reportStorageKey: string | null = null;
+      let reportSha256: string | null = null;
+      const reportFile = req.file;
+      if (reportFile) {
+        const ext =
+          path.extname(reportFile.originalname || reportFile.filename || '').replace(/^\./, '') ||
+          'bin';
+        reportStorageKey = StorageKeys.fieldReport(task.caseId, taskId, ext);
+        const buffer = await fs.readFile(reportFile.path);
+        reportSha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+        await objectStorage.put(reportStorageKey, buffer, reportFile.mimetype);
+        reportFilePath = `/uploads/field-reports/${reportFile.filename}`;
+        reportFileName = reportFile.originalname;
+      }
+
       // Append-only Backend Final Decision row (never touches FE tables).
       await client.query(
         `UPDATE task_backend_reviews SET is_current = false WHERE verification_task_id = $1 AND is_current`,
@@ -2644,8 +2671,10 @@ export class VerificationTasksController {
         `INSERT INTO task_backend_reviews
            (verification_task_id, case_id, fe_submission_id, task_kind,
             backend_final_result, backend_remarks, backend_findings,
-            backend_observations, backend_recommendation, reviewed_by)
-         VALUES ($1, $2, $3, 'FIELD', $4, $5, $6, $7, $8, $9)`,
+            backend_observations, backend_recommendation,
+            report_file_path, report_file_name, report_storage_key, report_sha256,
+            reviewed_by)
+         VALUES ($1, $2, $3, 'FIELD', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
           taskId,
           task.caseId,
@@ -2655,6 +2684,10 @@ export class VerificationTasksController {
           findings ?? null,
           observations ?? null,
           recommendation ?? null,
+          reportFilePath,
+          reportFileName,
+          reportStorageKey,
+          reportSha256,
           userId,
         ]
       );

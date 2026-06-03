@@ -102,7 +102,11 @@ export const BackendReviewQueuePage: React.FC = () => {
             </div>
             {openTaskId === t.id && (
               <div className="mt-4 border-t pt-4">
-                <FieldReviewDecisionForm taskId={t.id} onCompleted={handleCompleted} />
+                <FieldReviewDecisionForm
+                  taskId={t.id}
+                  caseId={t.caseId}
+                  onCompleted={handleCompleted}
+                />
               </div>
             )}
           </div>

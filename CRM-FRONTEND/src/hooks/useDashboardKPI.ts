@@ -23,6 +23,7 @@ export interface VerificationOperationsKPI {
     totalTasks: MetricWithTrend;
     openTasks: MetricWithTrend;
     inProgressTasks: MetricWithTrend;
+    awaitingReview?: MetricWithTrend;
     completedToday: number;
     overdueTasks: MetricWithTrend;
     slaRiskTasks: MetricWithTrend;
@@ -136,7 +137,7 @@ export const useDashboardKPI = () => {
           completionRate: kpi.performance?.firstVisitSuccessRate?.value ?? 0,
           avgTurnaroundDays: kpi.performance?.avgTatDays?.value ?? 0,
 
-          pendingReviewCases: 0,
+          pendingReviewCases: kpi.workload?.awaitingReview?.value ?? 0,
           rejectedCases: 0,
         }
       : undefined;
