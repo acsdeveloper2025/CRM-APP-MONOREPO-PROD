@@ -116,14 +116,20 @@ import { errorMessage } from '@/utils/errorMessage';
  * already-done success (no retry storm).
  */
 async function completeTaskOrThrowIfRevoked(client: PoolClient, taskId: string): Promise<void> {
+  // Mandatory-backend-review fork (single chokepoint for all 9 mobile submit
+  // paths): when the flag is ON the FE submission lands SUBMITTED_FOR_REVIEW
+  // (awaiting a backend finalize); when OFF it completes exactly as before.
+  // Commission auto-defers (the engine requires status='COMPLETED').
+  const reviewOn = await TaskCompletionFinalizer.isBackendReviewEnabled(client);
+  const target = reviewOn ? 'SUBMITTED_FOR_REVIEW' : 'COMPLETED';
   const result = await client.query(
     `UPDATE verification_tasks
-        SET status = 'COMPLETED',
-            completed_at = CURRENT_TIMESTAMP,
+        SET status = $2,
+            completed_at = CASE WHEN $2 = 'COMPLETED' THEN CURRENT_TIMESTAMP ELSE completed_at END,
             updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
         AND status = 'IN_PROGRESS'`,
-    [taskId]
+    [taskId, target]
   );
   if (result.rowCount === 0) {
     throw new Error('TASK_REVOKED_DURING_SUBMIT');

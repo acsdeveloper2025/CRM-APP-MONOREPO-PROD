@@ -2441,16 +2441,21 @@ export class VerificationTasksController {
         return;
       }
 
-      // 7. Complete task (status flip only — financial snapshot via finalizer)
+      // 7. Complete task (status flip only — financial snapshot via finalizer).
+      // Mandatory-backend-review fork: when the flag is ON the agent's submit
+      // lands SUBMITTED_FOR_REVIEW (a backend finalize completes it later);
+      // when OFF it completes exactly as before. Commission auto-defers.
+      const reviewOn = await TaskCompletionFinalizer.isBackendReviewEnabled(client);
+      const targetStatus = reviewOn ? 'SUBMITTED_FOR_REVIEW' : 'COMPLETED';
       const updateResult = await client.query(
         `UPDATE verification_tasks
-         SET status = 'COMPLETED',
+         SET status = $3,
              verification_outcome = $1,
-             completed_at = NOW(),
+             completed_at = CASE WHEN $3 = 'COMPLETED' THEN NOW() ELSE completed_at END,
              updated_at = NOW()
          WHERE id = $2
          RETURNING *`,
-        [verificationOutcome, taskId]
+        [verificationOutcome, taskId, targetStatus]
       );
 
       const completedTask = updateResult.rows[0];

@@ -52,6 +52,20 @@ export interface SnapshotFinancialsOptions {
 
 export const TaskCompletionFinalizer = {
   /**
+   * Whether mandatory backend review is enabled (global kill-switch in
+   * feature_flags). When true, a FIELD agent's FE submission lands the task in
+   * SUBMITTED_FOR_REVIEW (awaiting a backend finalize) instead of COMPLETED;
+   * commission + case completion are deferred to the backend finalize.
+   * When false (default), completion behaves exactly as before.
+   */
+  async isBackendReviewEnabled(client: PoolClient): Promise<boolean> {
+    const r = await client.query(
+      `SELECT enabled FROM feature_flags WHERE flag_key = 'backend_review_enabled'`
+    );
+    return r.rows[0]?.enabled === true;
+  },
+
+  /**
    * Snapshot financial state on the verification_task row.
    *
    * Run INSIDE the transaction that flips status='COMPLETED'.
