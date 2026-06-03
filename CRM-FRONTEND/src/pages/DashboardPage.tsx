@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   FileCheck,
   Clock,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -274,6 +275,15 @@ export const DashboardPage: React.FC = () => {
           icon={XCircle}
           color="text-red-600"
           onClick={() => navigate('/task-management/revoke-tasks')}
+          className="cursor-pointer"
+        />
+        <StatsCard
+          title="Awaiting Review"
+          value={stats.pendingReviewCases || 0}
+          description="Submitted, pending backend review"
+          icon={ClipboardCheck}
+          color="text-orange-600"
+          onClick={() => navigate('/backend-review')}
           className="cursor-pointer"
         />
         <StatsCard

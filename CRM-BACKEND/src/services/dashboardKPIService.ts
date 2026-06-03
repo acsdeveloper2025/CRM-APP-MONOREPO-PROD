@@ -41,6 +41,7 @@ export interface VerificationOperationsKPI {
     totalTasks: MetricWithTrend; // Created in period
     openTasks: MetricWithTrend; // Snapshot (Pending/Assigned/InProgress)
     inProgressTasks: MetricWithTrend; // Snapshot (InProgress)
+    awaitingReview: MetricWithTrend; // Snapshot (SUBMITTED_FOR_REVIEW) — backend-review backlog
     completedToday: number; // Absolute value for "Today"
     overdueTasks: MetricWithTrend; // Snapshot
     slaRiskTasks: MetricWithTrend; // Snapshot
@@ -231,6 +232,7 @@ export class DashboardKPIService {
         COALESCE(SUM(cp_revoked), 0)        as cp_revoked,
         COALESCE(SUM(pp_revoked), 0)        as pp_revoked,
         COALESCE(SUM(cp_in_progress), 0)    as cp_in_progress,
+        COALESCE(SUM(cp_submitted_for_review), 0) as cp_submitted_for_review,
         COALESCE(SUM(pp_in_progress), 0)    as pp_in_progress,
         COALESCE(SUM(cp_open), 0)           as cp_open,
         COALESCE(SUM(pp_open), 0)           as pp_open,
@@ -530,6 +532,7 @@ export class DashboardKPIService {
         totalTasks: buildMetric(stats.cpCreated, stats.ppCreated),
         openTasks: buildMetric(stats.cpOpen, stats.ppOpen),
         inProgressTasks: buildMetric(stats.cpInProgress, stats.ppInProgress),
+        awaitingReview: buildStaticMetric(stats.cpSubmittedForReview),
         completedToday: Number(stats.completedToday),
         overdueTasks: buildStaticMetric(stats.cpOverdue),
         slaRiskTasks: buildStaticMetric(stats.cpSlaRisk),
