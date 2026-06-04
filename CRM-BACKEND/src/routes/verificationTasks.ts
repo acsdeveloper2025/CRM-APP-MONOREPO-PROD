@@ -228,11 +228,15 @@ router.post(
  * Read the current Backend Final Decision for a task (task-detail UI).
  * GET /api/verification-tasks/:taskId/review
  * Read-only; case scope enforced inside the controller.
+ * validateTaskRecordAccess resolves VT-xxx task numbers → UUID (FE links use
+ * task_number) so the controller's `WHERE id = $1` matches; mirrors the main
+ * detail + assignment-history routes.
  */
 router.get(
   '/verification-tasks/:taskId/review',
   authenticateToken,
   authorize('case.view'),
+  validateTaskRecordAccess,
   VerificationTasksController.getFieldReview.bind(VerificationTasksController)
 );
 
