@@ -595,12 +595,6 @@ export const TaskDetailPage: React.FC = () => {
                     <p className="text-sm mt-1 whitespace-pre-wrap">{backendReview.recommendation}</p>
                   </div>
                 )}
-                {backendReview.reportFileName && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Report</p>
-                    <p className="text-sm mt-1">{backendReview.reportFileName}</p>
-                  </div>
-                )}
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Reviewed By</p>
                   <p className="text-sm mt-1">
