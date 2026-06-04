@@ -22,6 +22,18 @@ import { VerificationTaskSchema } from './schemas/verificationTask.schema';
  * Verification Tasks Service
  * Handles all API calls related to verification tasks
  */
+export interface BackendFieldReview {
+  backendFinalResult: string;
+  remarks: string;
+  findings?: string | null;
+  observations?: string | null;
+  recommendation?: string | null;
+  reportFileName?: string | null;
+  reviewedAt: string;
+  reviewedByName?: string | null;
+  reviewedByUsername?: string | null;
+}
+
 export class VerificationTasksService {
   /**
    * Get all verification tasks across all cases with filtering
@@ -322,6 +334,17 @@ export class VerificationTasksService {
       });
     }
     return response.data as unknown as VerificationTaskResponse;
+  }
+
+  /**
+   * Read the current Backend Final Decision for a task (official result + remark
+   * + structured fields + reviewer). Returns null if not yet finalized.
+   */
+  static async getFieldReview(taskId: string): Promise<BackendFieldReview | null> {
+    const response = await apiService.get<BackendFieldReview | null>(
+      `/verification-tasks/${taskId}/review`
+    );
+    return (response.data as BackendFieldReview | null) ?? null;
   }
 
   /**

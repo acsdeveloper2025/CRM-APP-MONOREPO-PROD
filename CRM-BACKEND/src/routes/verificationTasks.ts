@@ -225,6 +225,18 @@ router.post(
 );
 
 /**
+ * Read the current Backend Final Decision for a task (task-detail UI).
+ * GET /api/verification-tasks/:taskId/review
+ * Read-only; case scope enforced inside the controller.
+ */
+router.get(
+  '/verification-tasks/:taskId/review',
+  authenticateToken,
+  authorize('case.view'),
+  VerificationTasksController.getFieldReview.bind(VerificationTasksController)
+);
+
+/**
  * Validate a verification task
  * GET /api/verification-tasks/:taskId/validate
  * Checks if a COMPLETED task has all required data

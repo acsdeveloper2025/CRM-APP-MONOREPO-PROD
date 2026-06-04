@@ -2743,6 +2743,61 @@ export class VerificationTasksController {
   }
 
   /**
+   * Read the current Backend Final Decision for a task (for the task-detail UI).
+   * GET /api/verification-tasks/:taskId/review
+   * Returns the is_current task_backend_reviews row (official result + remark +
+   * structured fields + reviewer), or null if the task hasn't been finalized via
+   * backend review. Read-only; case-scope enforced (404, no existence leak).
+   */
+  static async getFieldReview(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const taskId = String(req.params.taskId || '');
+    if (!taskId) {
+      res.status(400).json({ success: false, message: 'Task ID is required' });
+      return;
+    }
+    try {
+      const taskRes = await dbQuery<{ caseId: string }>(
+        `SELECT case_id AS "caseId" FROM verification_tasks WHERE id = $1`,
+        [taskId]
+      );
+      if (taskRes.rows.length === 0) {
+        res.status(404).json({ success: false, message: 'Task not found' });
+        return;
+      }
+      const allowed = await enforceBackendUserCaseScope(
+        req.user!.id,
+        req.user,
+        taskRes.rows[0].caseId,
+        req.activeScope
+      );
+      if (!allowed) {
+        res.status(404).json({ success: false, message: 'Task not found' });
+        return;
+      }
+      const r = await dbQuery(
+        `SELECT tbr.backend_final_result   AS "backendFinalResult",
+                tbr.backend_remarks        AS "remarks",
+                tbr.backend_findings       AS "findings",
+                tbr.backend_observations   AS "observations",
+                tbr.backend_recommendation AS "recommendation",
+                tbr.report_file_name       AS "reportFileName",
+                tbr.reviewed_at            AS "reviewedAt",
+                u.name                     AS "reviewedByName",
+                u.username                 AS "reviewedByUsername"
+           FROM task_backend_reviews tbr
+           LEFT JOIN users u ON u.id = tbr.reviewed_by
+          WHERE tbr.verification_task_id = $1 AND tbr.is_current
+          LIMIT 1`,
+        [taskId]
+      );
+      res.json({ success: true, data: r.rows[0] ?? null });
+    } catch (error) {
+      logger.error('Error fetching field review:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch review' });
+    }
+  }
+
+  /**
    * Get tasks assigned to current user (for mobile app)
    * GET /api/mobile/my-verification-tasks
    */
