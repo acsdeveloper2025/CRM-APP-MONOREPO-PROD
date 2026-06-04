@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,21 +21,11 @@ import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useClients } from '@/hooks/useClients';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { useScopePageReset } from '@/hooks/useScopePageReset';
-import { useActiveScope } from '@/hooks/useActiveScope';
-import { casesService, type CaseListQuery } from '@/services/cases';
 import { usePermissionContext } from '@/contexts/PermissionContext';
+import { casesService, type CaseListQuery } from '@/services/cases';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
-import {
-  Download,
-  Plus,
-  RefreshCw,
-  FileText,
-  Inbox,
-  CheckCircle,
-  AlertTriangle,
-  Hourglass,
-} from 'lucide-react';
+import { Activity, Download, RefreshCw } from 'lucide-react';
 
 const SORT_OPTIONS: Array<{
   value: string;
@@ -44,29 +33,27 @@ const SORT_OPTIONS: Array<{
   sortBy: string;
   sortOrder: 'asc' | 'desc';
 }> = [
-  { value: 'caseId_desc', label: 'Newest first', sortBy: 'caseId', sortOrder: 'desc' },
-  { value: 'caseId_asc', label: 'Oldest first', sortBy: 'caseId', sortOrder: 'asc' },
   { value: 'updatedAt_desc', label: 'Recently updated', sortBy: 'updatedAt', sortOrder: 'desc' },
+  { value: 'createdAt_desc', label: 'Newest first', sortBy: 'createdAt', sortOrder: 'desc' },
+  { value: 'createdAt_asc', label: 'Oldest first', sortBy: 'createdAt', sortOrder: 'asc' },
   { value: 'priority_desc', label: 'Priority (high → low)', sortBy: 'priority', sortOrder: 'desc' },
   { value: 'customerName_asc', label: 'Customer A → Z', sortBy: 'customerName', sortOrder: 'asc' },
 ];
 
-export const CasesPage: React.FC = () => {
-  const navigate = useNavigate();
+const SFR_STATUS = 'SUBMITTED_FOR_REVIEW';
+
+export const SubmittedForReviewCasesPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isExporting, setIsExporting] = useState(false);
   const { hasPermissionCode } = usePermissionContext();
-  const { selectedClientId, selectedProductId } = useActiveScope();
   const canViewClientsFilter =
     hasPermissionCode('client.view') || hasPermissionCode('page.masterdata');
 
-  // URL state — source of truth for every list-page filter (§9.4).
   const page = Number(searchParams.get('page') || '1');
   const pageSize = Number(searchParams.get('pageSize') || '20');
-  const status = searchParams.get('status') || 'all';
   const priority = searchParams.get('priority') || 'all';
   const clientId = searchParams.get('clientId') || 'all';
-  const sort = searchParams.get('sort') || 'caseId_desc';
+  const sort = searchParams.get('sort') || 'updatedAt_desc';
   const dateFrom = searchParams.get('dateFrom') || '';
   const dateTo = searchParams.get('dateTo') || '';
 
@@ -88,7 +75,6 @@ export const CasesPage: React.FC = () => {
   const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
     useUnifiedSearch({ syncWithUrl: true });
 
-  // Reset page to 1 whenever a filter / sort / pageSize changes.
   useEffect(() => {
     if (page !== 1 && searchParams.get('page')) {
       const next = new URLSearchParams(searchParams);
@@ -96,9 +82,8 @@ export const CasesPage: React.FC = () => {
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchValue, status, priority, clientId, sort, dateFrom, dateTo, pageSize]);
+  }, [debouncedSearchValue, priority, clientId, sort, dateFrom, dateTo, pageSize]);
 
-  // P18.M-04: reset to page 1 on scope toggle.
   useScopePageReset(() => updateParam('page', null));
 
   const baseFilters = {
@@ -111,27 +96,22 @@ export const CasesPage: React.FC = () => {
 
   const query: CaseListQuery = {
     ...baseFilters,
-    status: status === 'all' ? undefined : status,
+    status: SFR_STATUS,
     page,
     limit: pageSize,
     sortBy: sortPair.sortBy,
     sortOrder: sortPair.sortOrder,
   };
 
-  const { data: casesData, isLoading, error } = useCases(query);
-  const { data: clientsData } = useClients({ limit: 100 }, { enabled: canViewClientsFilter });
+  const {
+    data: casesData,
+    isLoading,
+    isError: isCasesError,
+    refetch: refetchCases,
+  } = useCases(query);
+  const { data: clientsData } = useClients({ limit: 500 }, { enabled: canViewClientsFilter });
   const { refreshCases } = useRefreshCases();
 
-  // 5-card stats via /cases/stats (mirrors list WHERE without status).
-  const { data: stats } = useQuery({
-    queryKey: [
-      'cases-stats',
-      'all-cases',
-      baseFilters,
-      { c: selectedClientId, p: selectedProductId },
-    ],
-    queryFn: () => casesService.getStats(baseFilters),
-  });
 
   const cases = casesData?.data?.data || [];
   const paginationData = casesData?.data?.pagination || {
@@ -143,7 +123,6 @@ export const CasesPage: React.FC = () => {
   const clients = clientsData?.data || [];
 
   const activeFilterCount =
-    (status !== 'all' ? 1 : 0) +
     (priority !== 'all' ? 1 : 0) +
     (clientId !== 'all' ? 1 : 0) +
     (dateFrom ? 1 : 0) +
@@ -151,9 +130,7 @@ export const CasesPage: React.FC = () => {
 
   const clearAllFilters = () => {
     const next = new URLSearchParams(searchParams);
-    ['status', 'priority', 'clientId', 'dateFrom', 'dateTo', 'sort', 'page'].forEach((k) =>
-      next.delete(k)
-    );
+    ['priority', 'clientId', 'dateFrom', 'dateTo', 'sort', 'page'].forEach((k) => next.delete(k));
     setSearchParams(next, { replace: false });
     clearSearch();
   };
@@ -164,7 +141,7 @@ export const CasesPage: React.FC = () => {
       toast.info('Generating Excel export...');
       const { blob, filename } = await casesService.exportCases({
         exportType: 'all',
-        status: status === 'all' ? undefined : status,
+        status: SFR_STATUS,
         search: debouncedSearchValue || undefined,
         priority: priority === 'all' ? undefined : priority,
         clientId: clientId === 'all' ? undefined : clientId,
@@ -181,7 +158,7 @@ export const CasesPage: React.FC = () => {
       window.URL.revokeObjectURL(url);
       toast.success('Export downloaded successfully');
     } catch (err) {
-      logger.error('Failed to export cases:', err);
+      logger.error('Failed to export in-progress cases:', err);
       toast.error('Failed to export cases');
     } finally {
       setIsExporting(false);
@@ -192,81 +169,46 @@ export const CasesPage: React.FC = () => {
     await refreshCases({ clearCache: true, preserveFilters: true, showToast: true });
   };
 
-  const handleNewCase = () => navigate('/case-management/create-new-case');
-
   const totalPages = paginationData.totalPages || 1;
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">All Cases</h1>
-          <p className="text-sm text-muted-foreground">Manage and track all verification cases.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Submitted for Review</h1>
+          <p className="text-sm text-muted-foreground">
+            Cases whose field work is fully submitted and awaiting a backend reviewer&apos;s final
+            decision.
+          </p>
         </div>
       </div>
 
-      {/* 5-card stats grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <FileText className="h-8 w-8 text-muted-foreground" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Total Cases</p>
-                <p className="text-2xl font-bold">{stats?.total ?? '—'}</p>
-              </div>
-            </div>
+      {isCasesError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load cases awaiting review. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchCases()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
           </CardContent>
         </Card>
+      )}
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <Inbox className="h-8 w-8 text-amber-600" />
+              <Activity className="h-8 w-8 text-orange-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Open</p>
-                <p className="text-2xl font-bold">{stats?.open ?? '—'}</p>
-                <p className="text-xs text-muted-foreground">Pending + Assigned + In Progress</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold">{stats?.completed ?? '—'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">High Priority</p>
-                <p className="text-2xl font-bold">{stats?.highPriority ?? '—'}</p>
-                <p className="text-xs text-muted-foreground">HIGH + URGENT</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Hourglass className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Avg Pending Days</p>
-                <p className="text-2xl font-bold">
-                  {stats?.avgPendingDays ? stats.avgPendingDays.toFixed(1) : '—'}
-                </p>
-                <p className="text-xs text-muted-foreground">Open cases</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Awaiting Review</p>
+                <p className="text-2xl font-bold">{paginationData.total ?? '—'}</p>
               </div>
             </div>
           </CardContent>
@@ -284,23 +226,6 @@ export const CasesPage: React.FC = () => {
         onClearFilters={clearAllFilters}
         filterContent={
           <FilterGrid columns={4}>
-            <div className="space-y-1">
-              <Label htmlFor="status">Status</Label>
-              <Select value={status} onValueChange={(v) => updateParam('status', v)}>
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                  <SelectItem value="SUBMITTED_FOR_REVIEW">Submitted for Review</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
-                  <SelectItem value="REVOKED">Revoked</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-1">
               <Label htmlFor="priority">Priority</Label>
               <Select value={priority} onValueChange={(v) => updateParam('priority', v)}>
@@ -379,33 +304,11 @@ export const CasesPage: React.FC = () => {
               <Download className="h-4 w-4 mr-2" />
               {isExporting ? 'Exporting…' : 'Export'}
             </Button>
-            <Button onClick={handleNewCase}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Case
-            </Button>
           </>
         }
       />
 
-      {error ? (
-        <Card className="border-destructive bg-destructive/10">
-          <CardContent className="py-6 text-center text-destructive">
-            Failed to load cases. Please try again.
-            <div className="mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleRefresh()}
-                className="border-destructive text-destructive hover:bg-destructive/20"
-              >
-                Retry
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <CaseTable cases={cases} isLoading={isLoading} />
-      )}
+      <CaseTable cases={cases} isLoading={isLoading} />
 
       {paginationData.total > 0 && (
         <CasePagination
