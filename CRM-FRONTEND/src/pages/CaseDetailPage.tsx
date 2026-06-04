@@ -109,6 +109,8 @@ export const CaseDetailPage: React.FC = () => {
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
       case 'IN_PROGRESS':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+      case 'SUBMITTED_FOR_REVIEW':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300';
       case 'COMPLETED':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
       default:
@@ -191,7 +193,9 @@ export const CaseDetailPage: React.FC = () => {
         </div>
         <div className="flex items-center space-x-2">
           <Badge className={getStatusColor(caseItem.status)}>
-            {caseItem.status.replace('_', ' ')}
+            {caseItem.status === 'SUBMITTED_FOR_REVIEW'
+              ? 'Submitted for Review'
+              : caseItem.status.replace('_', ' ')}
           </Badge>
           <Badge className={getPriorityColor(caseItem.priority)}>
             {getPriorityLabel(caseItem.priority)}

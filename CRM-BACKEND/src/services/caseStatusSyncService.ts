@@ -57,10 +57,11 @@ export class CaseStatusSyncService {
       }
 
       const t = tasks.length;
-      const counts: { c: number; rv: number; ip: number; a: number; p: number } = {
+      const counts: { c: number; rv: number; ip: number; sfr: number; a: number; p: number } = {
         c: 0,
         rv: 0,
         ip: 0,
+        sfr: 0,
         a: 0,
         p: 0,
       };
@@ -70,11 +71,14 @@ export class CaseStatusSyncService {
           counts.c++;
         } else if (s === 'REVOKED') {
           counts.rv++;
-        } else if (s === 'IN_PROGRESS' || s === 'SUBMITTED_FOR_REVIEW') {
-          // SUBMITTED_FOR_REVIEW = FE done, awaiting mandatory backend review.
-          // Counts as active work-in-progress: it must keep the case OUT of
-          // COMPLETED (c + rv == t) until the backend finalizes the task.
+        } else if (s === 'IN_PROGRESS') {
           counts.ip++;
+        } else if (s === 'SUBMITTED_FOR_REVIEW') {
+          // FE done, awaiting mandatory backend review — its OWN bucket. Still
+          // active (keeps the case OUT of COMPLETED), but a case whose only
+          // non-terminal work is SFR rolls up to SUBMITTED_FOR_REVIEW (below)
+          // so the office sees it distinctly from active field work.
+          counts.sfr++;
         } else if (s === 'ASSIGNED') {
           counts.a++;
         } else if (s === 'PENDING') {
@@ -91,14 +95,18 @@ export class CaseStatusSyncService {
         newStatus = 'COMPLETED';
         completedAt = new Date();
       } else if (counts.ip > 0) {
+        // Real field work still in progress (ranks above SFR — a case with one
+        // submitted task AND one still-IN_PROGRESS task stays IN_PROGRESS).
         newStatus = 'IN_PROGRESS';
       } else if (counts.a > 0) {
         newStatus = 'ASSIGNED';
-      } else {
-        // P > 0 by elimination (every task is in one of the statuses and the
-        // four prior buckets — incl. SUBMITTED_FOR_REVIEW folded into ip — are
-        // exhausted).
+      } else if (counts.p > 0) {
         newStatus = 'PENDING';
+      } else {
+        // sfr > 0 by elimination: no PENDING/ASSIGNED/IN_PROGRESS remain, only
+        // COMPLETED/REVOKED + ≥1 SUBMITTED_FOR_REVIEW → all field work submitted,
+        // case awaiting backend review.
+        newStatus = 'SUBMITTED_FOR_REVIEW';
       }
 
       // Update the case

@@ -85,5 +85,7 @@ export function getPriorityLabel(priority: number | string): string {
  * Get status label in uppercase
  */
 export function getStatusLabel(status: string): string {
-  return status.toUpperCase().replace('_', ' ');
+  // replace ALL underscores (e.g. SUBMITTED_FOR_REVIEW -> "SUBMITTED FOR REVIEW");
+  // single-token statuses are unaffected.
+  return status.toUpperCase().replace(/_/g, ' ');
 }

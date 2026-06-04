@@ -39,6 +39,16 @@ const InProgressTasksPage = React.lazy(() =>
 const CompletedTasksPage = React.lazy(() =>
   import('@/pages/CompletedTasksPage').then((module) => ({ default: module.CompletedTasksPage }))
 );
+const AwaitingReviewTasksPage = React.lazy(() =>
+  import('@/pages/AwaitingReviewTasksPage').then((module) => ({
+    default: module.AwaitingReviewTasksPage,
+  }))
+);
+const SubmittedForReviewCasesPage = React.lazy(() =>
+  import('@/pages/SubmittedForReviewCasesPage').then((module) => ({
+    default: module.SubmittedForReviewCasesPage,
+  }))
+);
 const AllTasksPage = React.lazy(() =>
   import('@/pages/AllTasksPage').then((module) => ({ default: module.AllTasksPage }))
 );
@@ -409,6 +419,14 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
+            path="/case-management/submitted-for-review"
+            element={
+              <ProtectedRoute permission="page.cases">
+                <SubmittedForReviewCasesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/case-management/create-new-case"
             element={
               <ProtectedRoute permission="page.cases">
@@ -479,6 +497,14 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute permission="page.tasks">
                 <CompletedTasksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/task-management/awaiting-review"
+            element={
+              <ProtectedRoute permission="page.tasks">
+                <AwaitingReviewTasksPage />
               </ProtectedRoute>
             }
           />
